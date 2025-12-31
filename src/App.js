@@ -175,7 +175,7 @@ export default function App() {
         }))
     );
     setLoading(false);
-  }, [header, supabase]);
+  }, [header]);
 
   useEffect(() => {
     loadSlots();

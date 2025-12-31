@@ -79,7 +79,7 @@ export default function Supervisor() {
       .single();
 
     if (profile?.name) setName(profile.name);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     loadUser();
@@ -108,7 +108,7 @@ export default function Supervisor() {
 
     setRows(data || []);
     setSelected([]);
-  }, [filters, supabase]);
+  }, [filters]);
 
   const exportToExcel = () => {
     if (rows.length === 0) return alert("No pending entries to export");
