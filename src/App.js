@@ -123,11 +123,11 @@ export default function App() {
     async function fetchCustomers() {
       try {
         setLoading(true);
-        console.log("Attempting login...");
+        // console.log("Attempting login...");
 
         const loginData = await login("aditya.yadav@kimbal.io", "Aditya0!");
 
-        console.log("Login response:", loginData);
+        // console.log("Login response:", loginData);
 
         const token = loginData.result?.accessToken || loginData.accessToken || loginData.token;
         const id = loginData.result?.userId || loginData.userId || loginData.id;
@@ -146,7 +146,7 @@ export default function App() {
         // ← Yeh change: getClients use kar rahe hain (public API)
         const clientsData = await getClients();
 
-        console.log("Clients data:", clientsData);
+        // console.log("Clients data:", clientsData);
 
         let rawClients = [];
         if (Array.isArray(clientsData)) rawClients = clientsData;
@@ -179,7 +179,7 @@ export default function App() {
     if (!customerId) return;
 
     try {
-      console.log(`Fetching MO numbers for client: ${customerId}`);
+      // console.log(`Fetching MO numbers for client: ${customerId}`);
       
       const moData = await getMeterReportsByClient(customerId);
 
