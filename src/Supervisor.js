@@ -7,13 +7,16 @@ const globalStyles = `
     from { opacity: 0; transform: translateY(20px) scale(0.98); }
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
 `;
 
 const LINES = Array.from({ length: 18 }).map(
   (_, i) => `Line-${String(i + 1).padStart(2, "0")}`
 );
 
-// Toast Component (same as App.js)
 function Toast({ message, type, onClose }) {
   useEffect(() => {
     const timer = setTimeout(onClose, 4000);
@@ -57,12 +60,8 @@ export default function Supervisor() {
   });
   const [selected, setSelected] = useState([]);
   const [toast, setToast] = useState(null);
-
-  // Editing State
   const [editingId, setEditingId] = useState(null);
   const [tempData, setTempData] = useState({});
-
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 5;
 
@@ -73,7 +72,6 @@ export default function Supervisor() {
   const loadUser = useCallback(async () => {
     const { data } = await supabase.auth.getUser();
     const user = data?.user;
-
     if (!user) return;
 
     const { data: profile } = await supabase
@@ -149,7 +147,6 @@ export default function Supervisor() {
     );
   }
 
-  // Pagination Logic
   const totalPages = Math.ceil(rows.length / rowsPerPage);
   const currentRows = rows.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
@@ -274,7 +271,6 @@ export default function Supervisor() {
     setSelected([]);
   }
 
-  // Edit Handlers
   function startEdit(r) {
     setEditingId(r.id);
     setTempData({ ...r });
@@ -319,13 +315,12 @@ export default function Supervisor() {
   }
 
   return (
-    <div style={{ padding: "1.5rem 1rem", maxWidth: "1400px", width: "98%", margin: "0 auto" }}>
-      {/* Toast */}
+    <div style={{ padding: "1rem", maxWidth: "1400px", width: "100%", margin: "0 auto" }}>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <style>{globalStyles}</style>
 
       <h1 style={{
-        fontSize: "clamp(1.5rem, 4vw, 1.8rem)",
+        fontSize: "clamp(1.3rem, 4vw, 1.8rem)",
         fontWeight: "900",
         textAlign: "center",
         marginBottom: "1rem",
@@ -339,35 +334,22 @@ export default function Supervisor() {
       </h1>
 
       <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
-        <button
-          onClick={exportToExcel}
-          style={{
-            padding: "0.6rem 1.2rem",
-            background: "rgba(129, 140, 248, 0.1)",
-            color: "#c4b5fd",
-            border: "1px solid rgba(129, 140, 248, 0.2)",
-            borderRadius: "0.7rem",
-            fontWeight: "700",
-            fontSize: "0.85rem",
-            cursor: "pointer",
-            backdropFilter: "blur(10px)",
-            transition: "all 0.4s ease",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            animation: "reveal 0.8s ease both",
-            animationDelay: "0.05s"
-          }}
-          onMouseEnter={e => {
-            e.target.style.background = "rgba(129, 140, 248, 0.2)";
-            e.target.style.transform = "translateY(-2px)";
-          }}
-          onMouseLeave={e => {
-            e.target.style.background = "rgba(129, 140, 248, 0.1)";
-            e.target.style.transform = "translateY(0)";
-          }}
-        >
-          📥 Export Pending to Excel
+        <button onClick={exportToExcel} style={{
+          padding: "0.6rem 1.2rem",
+          background: "rgba(129, 140, 248, 0.1)",
+          color: "#c4b5fd",
+          border: "1px solid rgba(129, 140, 248, 0.2)",
+          borderRadius: "0.7rem",
+          fontWeight: "700",
+          fontSize: "0.85rem",
+          cursor: "pointer",
+          backdropFilter: "blur(10px)",
+          transition: "all 0.4s ease",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem"
+        }}>
+          📥 Export to Excel
         </button>
       </div>
 
@@ -375,34 +357,42 @@ export default function Supervisor() {
         <div style={{
           textAlign: "center",
           color: "#a78bfa",
-          fontSize: "16px",
-          marginBottom: "30px",
+          fontSize: "0.95rem",
+          marginBottom: "1.5rem",
           fontWeight: "600"
         }}>
           👤 Logged in as: <span style={{ color: "#e0e7ff", fontWeight: "800" }}>{name}</span>
         </div>
       )}
 
-      {/* FILTERS CARD */}
-      <div style={{ ...filterCardStyle, animation: "reveal 0.8s ease both", animationDelay: "0.1s" }}>
+      {/* FILTERS */}
+      <div style={{
+        background: "rgba(30, 41, 59, 0.75)",
+        backdropFilter: "blur(24px)",
+        borderRadius: "1rem",
+        padding: "1.25rem",
+        border: "1px solid rgba(129, 140, 248, 0.3)",
+        boxShadow: "0 25px 60px rgba(0,0,0,0.4)",
+        marginBottom: "1.5rem"
+      }}>
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "20px"
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "1rem"
         }}>
           <div>
-            <label style={labelStyle}>📅 Review Date</label>
+            <label style={{ display: "block", color: "#94a3b8", marginBottom: "0.5rem", fontSize: "0.85rem", fontWeight: "600" }}>📅 Review Date</label>
             <input type="date" value={filters.date} onChange={e => setFilters({ ...filters, date: e.target.value })} style={inputStyle} />
           </div>
           <div>
-            <label style={labelStyle}>🔧 Line</label>
+            <label style={{ display: "block", color: "#94a3b8", marginBottom: "0.5rem", fontSize: "0.85rem", fontWeight: "600" }}>🔧 Line</label>
             <select value={filters.line} onChange={e => setFilters({ ...filters, line: e.target.value })} style={inputStyle}>
               <option value="">All Lines</option>
               {LINES.map(l => <option key={l}>{l}</option>)}
             </select>
           </div>
           <div>
-            <label style={labelStyle}>⏰ Shift</label>
+            <label style={{ display: "block", color: "#94a3b8", marginBottom: "0.5rem", fontSize: "0.85rem", fontWeight: "600" }}>⏰ Shift</label>
             <select value={filters.shift} onChange={e => setFilters({ ...filters, shift: e.target.value })} style={inputStyle}>
               <option value="">All Shifts</option>
               <option value="A">A Shift</option>
@@ -413,13 +403,13 @@ export default function Supervisor() {
         </div>
       </div>
 
-      {/* BULK ACTIONS BAR */}
+      {/* BULK ACTIONS */}
       {rows.length > 0 && (
         <div style={{
           background: "rgba(30, 41, 59, 0.7)",
           backdropFilter: "blur(20px)",
-          borderRadius: "1.25rem",
-          padding: "1rem 2rem",
+          borderRadius: "1rem",
+          padding: "1rem",
           marginBottom: "1.5rem",
           border: "1px solid rgba(129, 140, 248, 0.2)",
           boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
@@ -427,23 +417,52 @@ export default function Supervisor() {
           justifyContent: "space-between",
           alignItems: "center",
           flexWrap: "wrap",
-          gap: "15px"
+          gap: "1rem"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-            <button onClick={selectAll} style={secondaryButtonStyle}>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+            <button onClick={selectAll} style={{
+              padding: "0.55rem 1.2rem",
+              background: "rgba(129, 140, 248, 0.15)",
+              color: "#818cf8",
+              border: "1px solid rgba(129, 140, 248, 0.3)",
+              borderRadius: "0.6rem",
+              fontWeight: "700",
+              fontSize: "0.85rem",
+              cursor: "pointer"
+            }}>
               {selected.length === rows.length ? "Deselect All" : `Select All (${rows.length})`}
             </button>
-            <span style={{ color: "#94a3b8", fontSize: "14px", fontWeight: "600" }}>
-              {selected.length} entries selected
+            <span style={{ color: "#94a3b8", fontSize: "0.85rem", fontWeight: "600" }}>
+              {selected.length} selected
             </span>
           </div>
 
-          <div style={{ display: "flex", gap: "15px" }}>
-            <button onClick={bulkApprove} disabled={selected.length === 0 || loading} style={bulkApproveStyle}>
-              ✅ Bulk Approve ({selected.length})
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+            <button onClick={bulkApprove} disabled={selected.length === 0 || loading} style={{
+              padding: "0.6rem 1.4rem",
+              background: "linear-gradient(135deg, #10b981, #059669)",
+              color: "white",
+              border: "none",
+              borderRadius: "0.7rem",
+              fontWeight: "700",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              boxShadow: "0 6px 20px rgba(16, 185, 129, 0.3)"
+            }}>
+              ✅ Approve ({selected.length})
             </button>
-            <button onClick={bulkReject} disabled={selected.length === 0 || loading} style={bulkRejectStyle}>
-              ❌ Bulk Reject
+            <button onClick={bulkReject} disabled={selected.length === 0 || loading} style={{
+              padding: "0.6rem 1.4rem",
+              background: "linear-gradient(135deg, #ef4444, #dc2626)",
+              color: "white",
+              border: "none",
+              borderRadius: "0.7rem",
+              fontWeight: "700",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              boxShadow: "0 6px 20px rgba(239, 68, 68, 0.3)"
+            }}>
+              ❌ Reject
             </button>
           </div>
         </div>
@@ -451,28 +470,42 @@ export default function Supervisor() {
 
       {/* CONTENT */}
       {loading ? (
-        <div style={loadingStateStyle}>🔄 Loading pending entries...</div>
+        <div style={{ textAlign: "center", padding: "3rem 2rem", color: "#94a3b8", fontSize: "1.2rem", background: "rgba(129, 140, 248, 0.05)", borderRadius: "1.5rem" }}>
+          🔄 Loading pending entries...
+        </div>
       ) : rows.length === 0 ? (
-        <div style={emptyStateStyle}>
-          <div style={{ fontSize: "80px", marginBottom: "30px" }}>🎉</div>
-          <div style={{ fontSize: "32px", fontWeight: "800" }}>No Pending Approvals</div>
-          <div style={{ fontSize: "20px", opacity: 0.8, marginTop: "20px" }}>
+        <div style={{
+          textAlign: "center",
+          padding: "2.5rem 2rem",
+          background: "rgba(16, 185, 129, 0.1)",
+          borderRadius: "1.25rem",
+          border: "2px dashed rgba(16, 185, 129, 0.3)",
+          color: "#10b981",
+          maxWidth: "500px",
+          margin: "0 auto"
+        }}>
+          <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🎉</div>
+          <div style={{ fontSize: "1.5rem", fontWeight: "800", marginBottom: "0.5rem" }}>No Pending Approvals</div>
+          <div style={{ fontSize: "1rem", opacity: 0.8 }}>
             Great job! All submitted entries have been reviewed.
           </div>
         </div>
       ) : (
-        <div style={tableContainerStyle}>
+        <div style={{
+          background: "rgba(30, 41, 59, 0.7)",
+          backdropFilter: "blur(20px)",
+          borderRadius: "1.25rem",
+          overflow: "hidden",
+          border: "1px solid rgba(129, 140, 248, 0.2)",
+          boxShadow: "0 25px 70px rgba(0,0,0,0.5)",
+          marginBottom: "2rem"
+        }}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
               <thead>
                 <tr style={{ background: "rgba(51, 65, 85, 0.9)" }}>
                   <th style={thStyle}>
-                    <input
-                      type="checkbox"
-                      checked={selected.length === rows.length && rows.length > 0}
-                      onChange={selectAll}
-                      style={{ cursor: "pointer", width: "18px", height: "18px" }}
-                    />
+                    <input type="checkbox" checked={selected.length === rows.length && rows.length > 0} onChange={selectAll} style={{ cursor: "pointer", width: "18px", height: "18px" }} />
                   </th>
                   <th style={thStyle}>Slot</th>
                   <th style={thStyle}>Customer</th>
@@ -486,117 +519,61 @@ export default function Supervisor() {
               </thead>
               <tbody>
                 {currentRows.map(r => (
-                  <tr
-                    key={r.id}
-                    style={{
-                      background: selected.includes(r.id) ? "rgba(129, 140, 248, 0.15)" : "transparent",
-                      borderBottom: "1px solid rgba(129, 140, 248, 0.1)",
-                      transition: "background 0.3s ease"
-                    }}
-                  >
+                  <tr key={r.id} style={{ background: selected.includes(r.id) ? "rgba(129, 140, 248, 0.15)" : "transparent", borderBottom: "1px solid rgba(129, 140, 248, 0.1)" }}>
                     <td style={tdStyle}>
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(r.id)}
-                        onChange={() => toggleSelect(r.id)}
-                        style={{ cursor: "pointer", width: "16px", height: "16px" }}
-                      />
+                      <input type="checkbox" checked={selected.includes(r.id)} onChange={() => toggleSelect(r.id)} style={{ cursor: "pointer", width: "16px", height: "16px" }} />
                     </td>
                     <td style={{ ...tdStyle, color: "#c4b5fd", fontWeight: "700" }}>{r.time_slot}</td>
                     <td style={tdStyle}>
                       {editingId === r.id ? (
-                        <input
-                          value={tempData.customer_name}
-                          onChange={e => updateTemp("customer_name", e.target.value)}
-                          style={editInputStyle}
-                        />
-                      ) : (
-                        r.customer_name || "-"
-                      )}
+                        <input value={tempData.customer_name} onChange={e => updateTemp("customer_name", e.target.value)} style={editInputStyle} />
+                      ) : (r.customer_name || "-")}
                     </td>
                     <td style={tdStyle}>
                       {editingId === r.id ? (
                         <div style={{ display: "flex", gap: "4px" }}>
-                          <select
-                            value={tempData.mo_type}
-                            onChange={e => updateTemp("mo_type", e.target.value)}
-                            style={{ ...editInputStyle, padding: "4px" }}
-                          >
+                          <select value={tempData.mo_type} onChange={e => updateTemp("mo_type", e.target.value)} style={{ ...editInputStyle, padding: "4px" }}>
                             <option value="Fresh">F</option>
                             <option value="Rework">R</option>
                           </select>
-                          <input
-                            value={tempData.mo_number}
-                            onChange={e => updateTemp("mo_number", e.target.value)}
-                            style={editInputStyle}
-                          />
+                          <input value={tempData.mo_number} onChange={e => updateTemp("mo_number", e.target.value)} style={editInputStyle} />
                         </div>
-                      ) : (
-                        <span>{r.mo_number || "-"} <small style={{ opacity: 0.7 }}>({r.mo_type})</small></span>
-                      )}
+                      ) : (<span>{r.mo_number || "-"} <small style={{ opacity: 0.7 }}>({r.mo_type})</small></span>)}
                     </td>
                     <td style={{ ...tdStyle, color: "#10b981", fontWeight: "700" }}>
                       {editingId === r.id ? (
-                        <input
-                          type="number"
-                          value={tempData.ok_qty}
-                          onChange={e => updateTemp("ok_qty", e.target.value)}
-                          style={{ ...editInputStyle, width: "60px" }}
-                        />
-                      ) : (
-                        r.ok_qty
-                      )}
+                        <input type="number" value={tempData.ok_qty} onChange={e => updateTemp("ok_qty", e.target.value)} style={{ ...editInputStyle, width: "60px" }} />
+                      ) : (r.ok_qty)}
                     </td>
                     <td style={{ ...tdStyle, color: "#ef4444", fontWeight: "700" }}>
                       {editingId === r.id ? (
-                        <input
-                          type="number"
-                          value={tempData.nok_qty}
-                          onChange={e => updateTemp("nok_qty", e.target.value)}
-                          style={{ ...editInputStyle, width: "60px" }}
-                        />
-                      ) : (
-                        r.nok_qty
-                      )}
+                        <input type="number" value={tempData.nok_qty} onChange={e => updateTemp("nok_qty", e.target.value)} style={{ ...editInputStyle, width: "60px" }} />
+                      ) : (r.nok_qty)}
                     </td>
                     <td style={tdStyle}>
                       {editingId === r.id ? (
-                        <select
-                          value={tempData.downtime}
-                          onChange={e => updateTemp("downtime", e.target.value)}
-                          style={editInputStyle}
-                        >
-                          {[0, 5, 10, 15, 20, 30, 45, 60].map(v => (
-                            <option key={v} value={v}>{v}m</option>
-                          ))}
+                        <select value={tempData.downtime} onChange={e => updateTemp("downtime", e.target.value)} style={editInputStyle}>
+                          {[0, 5, 10, 15, 20, 30, 45, 60].map(v => (<option key={v} value={v}>{v}m</option>))}
                         </select>
-                      ) : (
-                        <span style={{ color: r.downtime > 30 ? "#ef4444" : "#f59e0b" }}>{r.downtime || 0}m</span>
-                      )}
+                      ) : (<span style={{ color: r.downtime > 30 ? "#ef4444" : "#f59e0b" }}>{r.downtime || 0}m</span>)}
                     </td>
                     <td style={tdStyle}>
                       {editingId === r.id ? (
-                        <input
-                          value={tempData.downtime_detail}
-                          onChange={e => updateTemp("downtime_detail", e.target.value)}
-                          style={editInputStyle}
-                        />
-                      ) : (
-                        <span style={{ fontSize: "12px", fontStyle: "italic" }}>{r.downtime_detail || "-"}</span>
-                      )}
+                        <input value={tempData.downtime_detail} onChange={e => updateTemp("downtime_detail", e.target.value)} style={editInputStyle} />
+                      ) : (<span style={{ fontSize: "12px", fontStyle: "italic" }}>{r.downtime_detail || "-"}</span>)}
                     </td>
                     <td style={tdStyle}>
                       <div style={{ display: "flex", gap: "8px" }}>
                         {editingId === r.id ? (
                           <>
-                            <button onClick={saveEdit} disabled={loading} style={saveBtnTableStyle}>Save</button>
-                            <button onClick={cancelEdit} disabled={loading} style={cancelBtnTableStyle}>X</button>
+                            <button onClick={saveEdit} disabled={loading} style={{ padding: "4px 10px", background: "#818cf8", color: "white", border: "none", borderRadius: "4px", fontSize: "12px", fontWeight: "bold", cursor: "pointer" }}>Save</button>
+                            <button onClick={cancelEdit} disabled={loading} style={{ padding: "4px 8px", background: "rgba(148, 163, 184, 0.2)", color: "#94a3b8", border: "none", borderRadius: "4px", fontSize: "12px", fontWeight: "bold", cursor: "pointer" }}>X</button>
                           </>
                         ) : (
                           <>
-                            <button onClick={() => approve(r.id)} disabled={loading} style={actionBtnStyle("#10b981")}>Approve</button>
-                            <button onClick={() => startEdit(r)} disabled={loading} style={actionBtnStyle("#60a5fa")}>Edit</button>
-                            <button onClick={() => reject(r.id)} disabled={loading} style={actionBtnStyle("#ef4444")}>Reject</button>
+                            <button onClick={() => approve(r.id)} disabled={loading} style={actionBtn("#10b981")}>Approve</button>
+                            <button onClick={() => startEdit(r)} disabled={loading} style={actionBtn("#60a5fa")}>Edit</button>
+                            <button onClick={() => reject(r.id)} disabled={loading} style={actionBtn("#ef4444")}>Reject</button>
                           </>
                         )}
                       </div>
@@ -609,151 +586,32 @@ export default function Supervisor() {
         </div>
       )}
 
-      {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: "12px",
-          marginTop: "20px",
-          padding: "20px"
-        }}>
-          <button
-            onClick={() => paginate(currentPage - 1)}
-            disabled={currentPage === 1}
-            style={{
-              padding: "8px 16px",
-              background: "rgba(15, 23, 42, 0.5)",
-              color: currentPage === 1 ? "#475569" : "#e0e7ff",
-              border: "1px solid rgba(129, 140, 248, 0.2)",
-              borderRadius: "10px",
-              cursor: currentPage === 1 ? "default" : "pointer"
-            }}
-          >
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", marginTop: "20px", padding: "20px" }}>
+          <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} style={{ padding: "8px 16px", background: "rgba(15, 23, 42, 0.5)", color: currentPage === 1 ? "#475569" : "#e0e7ff", border: "1px solid rgba(129, 140, 248, 0.2)", borderRadius: "10px", cursor: currentPage === 1 ? "default" : "pointer" }}>
             Previous
           </button>
-
           <div style={{ color: "#94a3b8", fontWeight: "600", fontSize: "14px" }}>
             Page <span style={{ color: "#c4b5fd" }}>{currentPage}</span> of {totalPages}
           </div>
-
-          <button
-            onClick={() => paginate(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            style={{
-              padding: "8px 16px",
-              background: "rgba(15, 23, 42, 0.5)",
-              color: currentPage === totalPages ? "#475569" : "#e0e7ff",
-              border: "1px solid rgba(129, 140, 248, 0.2)",
-              borderRadius: "10px",
-              cursor: currentPage === totalPages ? "default" : "pointer"
-            }}
-          >
+          <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} style={{ padding: "8px 16px", background: "rgba(15, 23, 42, 0.5)", color: currentPage === totalPages ? "#475569" : "#e0e7ff", border: "1px solid rgba(129, 140, 248, 0.2)", borderRadius: "10px", cursor: currentPage === totalPages ? "default" : "pointer" }}>
             Next
           </button>
         </div>
       )}
-
-      {/* Animation */}
-      <style jsx>{`
-        @keyframes slideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }
 
-// Premium Styles
-const filterCardStyle = {
-  background: "rgba(30, 41, 59, 0.75)",
-  backdropFilter: "blur(24px)",
-  borderRadius: "1.25rem",
-  padding: "1.5rem",
-  border: "1px solid rgba(129, 140, 248, 0.3)",
-  boxShadow: "0 25px 60px rgba(0,0,0,0.4)",
-  marginBottom: "2rem"
-};
-
-const labelStyle = {
-  display: "block",
-  color: "#94a3b8",
-  marginBottom: "0.5rem",
-  fontSize: "0.85rem",
-  fontWeight: "600"
-};
-
 const inputStyle = {
   width: "100%",
-  padding: "0.75rem 1rem",
+  padding: "0.65rem 0.9rem",
   background: "rgba(15, 23, 42, 0.9)",
   border: "1px solid rgba(129, 140, 248, 0.4)",
-  borderRadius: "0.75rem",
+  borderRadius: "0.7rem",
   color: "#e0e7ff",
   fontSize: "0.9rem",
-  backdropFilter: "blur(12px)",
-  transition: "all 0.3s ease"
-};
-
-const infoCardStyle = {
-  padding: "1.5rem",
-  background: "rgba(51, 65, 85, 0.5)",
-  borderRadius: "1.25rem",
-  border: "1px solid rgba(129, 140, 248, 0.2)",
   backdropFilter: "blur(12px)"
-};
-
-const approveButtonStyle = {
-  padding: "0.75rem 1.5rem",
-  background: "linear-gradient(135deg, #10b981, #059669)",
-  color: "white",
-  border: "none",
-  borderRadius: "0.75rem",
-  fontWeight: "800",
-  fontSize: "0.95rem",
-  cursor: "pointer",
-  boxShadow: "0 10px 25px rgba(16, 185, 129, 0.3)",
-  transition: "all 0.4s ease"
-};
-
-const rejectButtonStyle = {
-  padding: "0.75rem 1.5rem",
-  background: "linear-gradient(135deg, #ef4444, #dc2626)",
-  color: "white",
-  border: "none",
-  borderRadius: "0.75rem",
-  fontWeight: "800",
-  fontSize: "0.95rem",
-  cursor: "pointer",
-  boxShadow: "0 10px 25px rgba(239, 68, 68, 0.3)",
-  transition: "all 0.4s ease"
-};
-
-const editButtonStyle = {
-  padding: "0.75rem 1.5rem",
-  background: "rgba(96, 165, 250, 0.15)",
-  color: "#60a5fa",
-  border: "1px solid rgba(96, 165, 250, 0.3)",
-  borderRadius: "0.75rem",
-  fontWeight: "800",
-  fontSize: "0.95rem",
-  cursor: "pointer",
-  transition: "all 0.4s ease"
-};
-
-const saveButtonStyle = {
-  padding: "0.85rem 2.5rem",
-  background: "linear-gradient(135deg, #818cf8, #6366f1)",
-  color: "white",
-  border: "none",
-  borderRadius: "0.8rem",
-  fontWeight: "800",
-  fontSize: "1rem",
-  cursor: "pointer",
-  boxShadow: "0 10px 30px rgba(99, 102, 241, 0.4)",
-  transition: "all 0.4s ease"
 };
 
 const editInputStyle = {
@@ -765,16 +623,6 @@ const editInputStyle = {
   color: "white",
   fontSize: "14px",
   outline: "none"
-};
-
-const tableContainerStyle = {
-  background: "rgba(30, 41, 59, 0.7)",
-  backdropFilter: "blur(20px)",
-  borderRadius: "1.5rem",
-  overflow: "hidden",
-  border: "1px solid rgba(129, 140, 248, 0.2)",
-  boxShadow: "0 25px 70px rgba(0,0,0,0.5)",
-  marginBottom: "2rem"
 };
 
 const thStyle = {
@@ -792,95 +640,13 @@ const tdStyle = {
   fontSize: "0.85rem"
 };
 
-const actionBtnStyle = (color) => ({
+const actionBtn = (color) => ({
   padding: "6px 12px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
   background: `${color}15`,
   color: color,
   border: `1px solid ${color}40`,
   borderRadius: "6px",
   cursor: "pointer",
   fontWeight: "700",
-  fontSize: "12px",
-  transition: "all 0.3s ease"
+  fontSize: "12px"
 });
-
-const saveBtnTableStyle = {
-  padding: "4px 10px",
-  background: "#818cf8",
-  color: "white",
-  border: "none",
-  borderRadius: "4px",
-  fontSize: "12px",
-  fontWeight: "bold",
-  cursor: "pointer"
-};
-
-const cancelBtnTableStyle = {
-  padding: "4px 8px",
-  background: "rgba(148, 163, 184, 0.2)",
-  color: "#94a3b8",
-  border: "none",
-  borderRadius: "4px",
-  fontSize: "12px",
-  fontWeight: "bold",
-  cursor: "pointer"
-};
-
-const bulkApproveStyle = {
-  padding: "0.7rem 1.8rem",
-  background: "linear-gradient(135deg, #10b981, #059669)",
-  color: "white",
-  border: "none",
-  borderRadius: "0.75rem",
-  fontWeight: "700",
-  fontSize: "0.95rem",
-  cursor: "pointer",
-  boxShadow: "0 6px 20px rgba(16, 185, 129, 0.3)",
-  transition: "all 0.3s ease"
-};
-
-const bulkRejectStyle = {
-  padding: "0.7rem 1.8rem",
-  background: "linear-gradient(135deg, #ef4444, #dc2626)",
-  color: "white",
-  border: "none",
-  borderRadius: "0.75rem",
-  fontWeight: "700",
-  fontSize: "0.95rem",
-  cursor: "pointer",
-  boxShadow: "0 6px 20px rgba(239, 68, 68, 0.3)",
-  transition: "all 0.3s ease"
-};
-
-const secondaryButtonStyle = {
-  padding: "0.6rem 1.4rem",
-  background: "rgba(129, 140, 248, 0.15)",
-  color: "#818cf8",
-  border: "1px solid rgba(129, 140, 248, 0.3)",
-  borderRadius: "0.6rem",
-  fontWeight: "700",
-  fontSize: "0.85rem",
-  cursor: "pointer",
-  transition: "all 0.3s ease"
-};
-
-const loadingStateStyle = {
-  textAlign: "center",
-  padding: "6rem 2rem",
-  color: "#94a3b8",
-  fontSize: "1.5rem",
-  background: "rgba(129, 140, 248, 0.05)",
-  borderRadius: "2rem"
-};
-
-const emptyStateStyle = {
-  textAlign: "center",
-  padding: "3rem 2rem",
-  background: "rgba(16, 185, 129, 0.15)",
-  borderRadius: "1.5rem",
-  border: "2px dashed rgba(16, 185, 129, 0.4)",
-  color: "#10b981"
-};

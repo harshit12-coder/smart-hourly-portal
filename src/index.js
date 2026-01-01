@@ -98,13 +98,15 @@ function Root() {
       color: "#e0e7ff",
       overflow: "hidden"
     }}>
-      <nav style={{
+     <nav style={{
         backdropFilter: "blur(20px)",
         background: "rgba(15, 23, 42, 0.4)",
         borderBottom: "1px solid rgba(167, 139, 250, 0.15)",
         padding: "12px 24px",
         flexShrink: 0,
-        boxShadow: "0 10px 40px rgba(0,0,0,0.3)"
+        boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
+        position: "relative",
+        zIndex: 1000
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "32px" }}>
@@ -128,15 +130,38 @@ function Root() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-            <button
+           <button
               className="mobile-menu-btn"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               style={{
-                background: "none",
-                border: "none",
+                background: mobileMenuOpen 
+                  ? "rgba(167, 139, 250, 0.2)" 
+                  : "rgba(129, 140, 248, 0.15)",
+                border: "1px solid rgba(167, 139, 250, 0.3)",
                 color: "#c4b5fd",
-                fontSize: "32px",
-                cursor: "pointer"
+                fontSize: "24px",
+                cursor: "pointer",
+                width: "44px",
+                height: "44px",
+                borderRadius: "12px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.3s ease",
+                backdropFilter: "blur(10px)",
+                boxShadow: mobileMenuOpen 
+                  ? "0 0 20px rgba(167, 139, 250, 0.3)" 
+                  : "0 4px 15px rgba(0,0,0,0.2)"
+              }}
+              onMouseEnter={e => {
+                e.target.style.background = "rgba(167, 139, 250, 0.25)";
+                e.target.style.transform = "scale(1.05)";
+              }}
+              onMouseLeave={e => {
+                e.target.style.background = mobileMenuOpen 
+                  ? "rgba(167, 139, 250, 0.2)" 
+                  : "rgba(129, 140, 248, 0.15)";
+                e.target.style.transform = "scale(1)";
               }}
             >
               {mobileMenuOpen ? "✕" : "☰"}
@@ -172,12 +197,13 @@ function Root() {
             top: "100%",
             left: 0,
             right: 0,
-            background: "rgba(15, 23, 42, 0.95)",
-            backdropFilter: "blur(20px)",
-            padding: "40px 20px",
+            background: "rgba(15, 23, 42, 0.98)",
+            backdropFilter: "blur(24px)",
+            padding: "24px 20px",
             borderBottom: "1px solid rgba(167, 139, 250, 0.3)",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.6)",
-            zIndex: 999
+            boxShadow: "0 20px 50px rgba(0,0,0,0.7)",
+            zIndex: 9999,
+            animation: "slideDown 0.3s ease-out"
           }}>
             {navLinks}
           </div>
