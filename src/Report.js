@@ -429,6 +429,7 @@ export default function Report() {
                   <th style={thStyle}>OK Qty</th>
                   <th style={thStyle}>NOK Qty</th>
                   <th style={thStyle}>Downtime</th>
+                  <th style={thStyle}>Reason</th>
                   <th style={thStyle}>Approved By</th>
                 </tr>
               </thead>
@@ -444,6 +445,7 @@ export default function Report() {
                     <td style={{ ...tdStyle, color: "#10b981", fontWeight: "700" }}>{e.ok_qty}</td>
                     <td style={{ ...tdStyle, color: "#ef4444", fontWeight: "700" }}>{e.nok_qty}</td>
                     <td style={tdStyle}>{e.downtime || 0} min</td>
+                    <td style={{ ...tdStyle, fontSize: "12px", fontStyle: "italic" }}>{e.downtime_detail || "-"}</td>
                     <td style={tdStyle}>{e.approved_by || "Supervisor"}</td>
                   </tr>
                 ))}

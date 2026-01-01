@@ -58,6 +58,10 @@ export default function Supervisor() {
   const [selected, setSelected] = useState([]);
   const [toast, setToast] = useState(null);
 
+  // Editing State
+  const [editingId, setEditingId] = useState(null);
+  const [tempData, setTempData] = useState({});
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 5;
@@ -270,6 +274,50 @@ export default function Supervisor() {
     setSelected([]);
   }
 
+  // Edit Handlers
+  function startEdit(r) {
+    setEditingId(r.id);
+    setTempData({ ...r });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setTempData({});
+  }
+
+  function updateTemp(field, value) {
+    setTempData(prev => ({ ...prev, [field]: value }));
+  }
+
+  async function saveEdit() {
+    setLoading(true);
+    const { error } = await supabase
+      .from("production_entries")
+      .update({
+        customer_name: tempData.customer_name,
+        mo_number: tempData.mo_number,
+        mo_type: tempData.mo_type,
+        ok_qty: Number(tempData.ok_qty || 0),
+        nok_qty: Number(tempData.nok_qty || 0),
+        downtime: Number(tempData.downtime || 0),
+        downtime_detail: tempData.downtime_detail,
+        atl: tempData.atl,
+        remarks: tempData.remarks
+      })
+      .eq("id", editingId);
+
+    setLoading(false);
+    if (error) {
+      showToast("Save failed: " + error.message, "error");
+      return;
+    }
+
+    showToast("Entry updated successfully!", "success");
+    setRows(rows.map(r => (r.id === editingId ? { ...r, ...tempData } : r)));
+    setEditingId(null);
+    setTempData({});
+  }
+
   return (
     <div style={{ padding: "1.5rem 1rem", maxWidth: "1400px", width: "98%", margin: "0 auto" }}>
       {/* Toast */}
@@ -370,27 +418,27 @@ export default function Supervisor() {
         <div style={{
           background: "rgba(30, 41, 59, 0.7)",
           backdropFilter: "blur(20px)",
-          borderRadius: "24px",
-          padding: "30px",
-          marginBottom: "40px",
+          borderRadius: "1.25rem",
+          padding: "1rem 2rem",
+          marginBottom: "1.5rem",
           border: "1px solid rgba(129, 140, 248, 0.2)",
           boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           flexWrap: "wrap",
-          gap: "20px"
+          gap: "15px"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
             <button onClick={selectAll} style={secondaryButtonStyle}>
-              {selected.length === rows.length ? "Deselect All" : "Select All"} ({rows.length})
+              {selected.length === rows.length ? "Deselect All" : `Select All (${rows.length})`}
             </button>
-            <span style={{ color: "#94a3b8", fontSize: "18px" }}>
-              {selected.length} selected
+            <span style={{ color: "#94a3b8", fontSize: "14px", fontWeight: "600" }}>
+              {selected.length} entries selected
             </span>
           </div>
 
-          <div style={{ display: "flex", gap: "20px" }}>
+          <div style={{ display: "flex", gap: "15px" }}>
             <button onClick={bulkApprove} disabled={selected.length === 0 || loading} style={bulkApproveStyle}>
               ✅ Bulk Approve ({selected.length})
             </button>
@@ -413,126 +461,197 @@ export default function Supervisor() {
           </div>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          {currentRows.map(r => (
-            <div
-              key={r.id}
-              style={{
-                background: selected.includes(r.id)
-                  ? "rgba(129, 140, 248, 0.15)"
-                  : "rgba(30, 41, 59, 0.85)",
-                backdropFilter: "blur(20px)",
-                borderRadius: "20px",
-                padding: "20px",
-                border: selected.includes(r.id)
-                  ? "2px solid #818cf8"
-                  : "1px solid rgba(129, 140, 248, 0.2)",
-                boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
-                transition: "all 0.4s ease"
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(r.id)}
-                    onChange={() => toggleSelect(r.id)}
-                    style={{ width: "20px", height: "20px", accentColor: "#60a5fa", cursor: "pointer" }}
-                  />
-                  <h3 style={{
-                    color: "#c4b5fd",
-                    fontSize: "20px",
-                    fontWeight: "800",
-                    textShadow: "0 0 15px rgba(196, 181, 253, 0.3)"
-                  }}>
-                    {r.date} — {r.line} — {r.time_slot}
-                  </h3>
-                </div>
-              </div>
+        <div style={tableContainerStyle}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
+              <thead>
+                <tr style={{ background: "rgba(51, 65, 85, 0.9)" }}>
+                  <th style={thStyle}>
+                    <input
+                      type="checkbox"
+                      checked={selected.length === rows.length && rows.length > 0}
+                      onChange={selectAll}
+                      style={{ cursor: "pointer", width: "18px", height: "18px" }}
+                    />
+                  </th>
+                  <th style={thStyle}>Slot</th>
+                  <th style={thStyle}>Customer</th>
+                  <th style={thStyle}>MO Details</th>
+                  <th style={thStyle}>OK</th>
+                  <th style={thStyle}>NOK</th>
+                  <th style={thStyle}>Downtime</th>
+                  <th style={thStyle}>Reason</th>
+                  <th style={thStyle}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentRows.map(r => (
+                  <tr
+                    key={r.id}
+                    style={{
+                      background: selected.includes(r.id) ? "rgba(129, 140, 248, 0.15)" : "transparent",
+                      borderBottom: "1px solid rgba(129, 140, 248, 0.1)",
+                      transition: "background 0.3s ease"
+                    }}
+                  >
+                    <td style={tdStyle}>
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(r.id)}
+                        onChange={() => toggleSelect(r.id)}
+                        style={{ cursor: "pointer", width: "16px", height: "16px" }}
+                      />
+                    </td>
+                    <td style={{ ...tdStyle, color: "#c4b5fd", fontWeight: "700" }}>{r.time_slot}</td>
+                    <td style={tdStyle}>
+                      {editingId === r.id ? (
+                        <input
+                          value={tempData.customer_name}
+                          onChange={e => updateTemp("customer_name", e.target.value)}
+                          style={editInputStyle}
+                        />
+                      ) : (
+                        r.customer_name || "-"
+                      )}
+                    </td>
+                    <td style={tdStyle}>
+                      {editingId === r.id ? (
+                        <div style={{ display: "flex", gap: "4px" }}>
+                          <select
+                            value={tempData.mo_type}
+                            onChange={e => updateTemp("mo_type", e.target.value)}
+                            style={{ ...editInputStyle, padding: "4px" }}
+                          >
+                            <option value="Fresh">F</option>
+                            <option value="Rework">R</option>
+                          </select>
+                          <input
+                            value={tempData.mo_number}
+                            onChange={e => updateTemp("mo_number", e.target.value)}
+                            style={editInputStyle}
+                          />
+                        </div>
+                      ) : (
+                        <span>{r.mo_number || "-"} <small style={{ opacity: 0.7 }}>({r.mo_type})</small></span>
+                      )}
+                    </td>
+                    <td style={{ ...tdStyle, color: "#10b981", fontWeight: "700" }}>
+                      {editingId === r.id ? (
+                        <input
+                          type="number"
+                          value={tempData.ok_qty}
+                          onChange={e => updateTemp("ok_qty", e.target.value)}
+                          style={{ ...editInputStyle, width: "60px" }}
+                        />
+                      ) : (
+                        r.ok_qty
+                      )}
+                    </td>
+                    <td style={{ ...tdStyle, color: "#ef4444", fontWeight: "700" }}>
+                      {editingId === r.id ? (
+                        <input
+                          type="number"
+                          value={tempData.nok_qty}
+                          onChange={e => updateTemp("nok_qty", e.target.value)}
+                          style={{ ...editInputStyle, width: "60px" }}
+                        />
+                      ) : (
+                        r.nok_qty
+                      )}
+                    </td>
+                    <td style={tdStyle}>
+                      {editingId === r.id ? (
+                        <select
+                          value={tempData.downtime}
+                          onChange={e => updateTemp("downtime", e.target.value)}
+                          style={editInputStyle}
+                        >
+                          {[0, 5, 10, 15, 20, 30, 45, 60].map(v => (
+                            <option key={v} value={v}>{v}m</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span style={{ color: r.downtime > 30 ? "#ef4444" : "#f59e0b" }}>{r.downtime || 0}m</span>
+                      )}
+                    </td>
+                    <td style={tdStyle}>
+                      {editingId === r.id ? (
+                        <input
+                          value={tempData.downtime_detail}
+                          onChange={e => updateTemp("downtime_detail", e.target.value)}
+                          style={editInputStyle}
+                        />
+                      ) : (
+                        <span style={{ fontSize: "12px", fontStyle: "italic" }}>{r.downtime_detail || "-"}</span>
+                      )}
+                    </td>
+                    <td style={tdStyle}>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        {editingId === r.id ? (
+                          <>
+                            <button onClick={saveEdit} disabled={loading} style={saveBtnTableStyle}>Save</button>
+                            <button onClick={cancelEdit} disabled={loading} style={cancelBtnTableStyle}>X</button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => approve(r.id)} disabled={loading} style={actionBtnStyle("#10b981")}>Approve</button>
+                            <button onClick={() => startEdit(r)} disabled={loading} style={actionBtnStyle("#60a5fa")}>Edit</button>
+                            <button onClick={() => reject(r.id)} disabled={loading} style={actionBtnStyle("#ef4444")}>Reject</button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "30px", marginBottom: "40px" }}>
-                <div style={infoCardStyle}>
-                  <div style={{ color: "#94a3b8", fontSize: "16px", marginBottom: "8px" }}>Customer</div>
-                  <div style={{ color: "#e0e7ff", fontSize: "20px", fontWeight: "700" }}>{r.customer_name || "-"}</div>
-                </div>
-                <div style={infoCardStyle}>
-                  <div style={{ color: "#94a3b8", fontSize: "16px", marginBottom: "8px" }}>MO Details</div>
-                  <div style={{ color: "#e0e7ff", fontSize: "20px", fontWeight: "700" }}>
-                    {r.mo_number || "-"} <span style={{ opacity: 0.7, fontSize: "16px" }}>({r.mo_type})</span>
-                  </div>
-                </div>
-                <div style={infoCardStyle}>
-                  <div style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "6px" }}>OK Quantity</div>
-                  <div style={{ color: "#10b981", fontSize: "24px", fontWeight: "900" }}>{r.ok_qty}</div>
-                </div>
-                <div style={infoCardStyle}>
-                  <div style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "6px" }}>NOK Quantity</div>
-                  <div style={{ color: "#ef4444", fontSize: "24px", fontWeight: "900" }}>{r.nok_qty}</div>
-                </div>
-                <div style={infoCardStyle}>
-                  <div style={{ color: "#94a3b8", fontSize: "16px", marginBottom: "8px" }}>Downtime</div>
-                  <div style={{ color: r.downtime > 30 ? "#ef4444" : "#f59e0b", fontSize: "24px", fontWeight: "700" }}>
-                    {r.downtime || 0} min
-                  </div>
-                </div>
-              </div>
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: "12px",
+          marginTop: "20px",
+          padding: "20px"
+        }}>
+          <button
+            onClick={() => paginate(currentPage - 1)}
+            disabled={currentPage === 1}
+            style={{
+              padding: "8px 16px",
+              background: "rgba(15, 23, 42, 0.5)",
+              color: currentPage === 1 ? "#475569" : "#e0e7ff",
+              border: "1px solid rgba(129, 140, 248, 0.2)",
+              borderRadius: "10px",
+              cursor: currentPage === 1 ? "default" : "pointer"
+            }}
+          >
+            Previous
+          </button>
 
-              <div style={{ display: "flex", justifyContent: "center", gap: "30px" }}>
-                <button onClick={() => approve(r.id)} disabled={loading} style={approveButtonStyle}>
-                  {loading ? "Processing..." : "✅ Approve Entry"}
-                </button>
-                <button onClick={() => reject(r.id)} disabled={loading} style={rejectButtonStyle}>
-                  ❌ Reject Entry
-                </button>
-              </div>
-            </div>
-          ))}
+          <div style={{ color: "#94a3b8", fontWeight: "600", fontSize: "14px" }}>
+            Page <span style={{ color: "#c4b5fd" }}>{currentPage}</span> of {totalPages}
+          </div>
 
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "12px",
-              marginTop: "20px",
-              padding: "20px"
-            }}>
-              <button
-                onClick={() => paginate(currentPage - 1)}
-                disabled={currentPage === 1}
-                style={{
-                  padding: "8px 16px",
-                  background: "rgba(15, 23, 42, 0.5)",
-                  color: currentPage === 1 ? "#475569" : "#e0e7ff",
-                  border: "1px solid rgba(129, 140, 248, 0.2)",
-                  borderRadius: "10px",
-                  cursor: currentPage === 1 ? "default" : "pointer"
-                }}
-              >
-                Previous
-              </button>
-
-              <div style={{ color: "#94a3b8", fontWeight: "600", fontSize: "14px" }}>
-                Page <span style={{ color: "#c4b5fd" }}>{currentPage}</span> of {totalPages}
-              </div>
-
-              <button
-                onClick={() => paginate(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                style={{
-                  padding: "8px 16px",
-                  background: "rgba(15, 23, 42, 0.5)",
-                  color: currentPage === totalPages ? "#475569" : "#e0e7ff",
-                  border: "1px solid rgba(129, 140, 248, 0.2)",
-                  borderRadius: "10px",
-                  cursor: currentPage === totalPages ? "default" : "pointer"
-                }}
-              >
-                Next
-              </button>
-            </div>
-          )}
+          <button
+            onClick={() => paginate(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            style={{
+              padding: "8px 16px",
+              background: "rgba(15, 23, 42, 0.5)",
+              color: currentPage === totalPages ? "#475569" : "#e0e7ff",
+              border: "1px solid rgba(129, 140, 248, 0.2)",
+              borderRadius: "10px",
+              cursor: currentPage === totalPages ? "default" : "pointer"
+            }}
+          >
+            Next
+          </button>
         </div>
       )}
 
@@ -587,63 +706,163 @@ const infoCardStyle = {
 };
 
 const approveButtonStyle = {
-  padding: "0.85rem 2rem",
+  padding: "0.75rem 1.5rem",
   background: "linear-gradient(135deg, #10b981, #059669)",
   color: "white",
   border: "none",
   borderRadius: "0.75rem",
   fontWeight: "800",
-  fontSize: "1rem",
+  fontSize: "0.95rem",
   cursor: "pointer",
-  boxShadow: "0 15px 40px rgba(16, 185, 129, 0.4)",
+  boxShadow: "0 10px 25px rgba(16, 185, 129, 0.3)",
   transition: "all 0.4s ease"
 };
 
 const rejectButtonStyle = {
-  padding: "0.85rem 2rem",
+  padding: "0.75rem 1.5rem",
   background: "linear-gradient(135deg, #ef4444, #dc2626)",
   color: "white",
   border: "none",
   borderRadius: "0.75rem",
   fontWeight: "800",
-  fontSize: "1rem",
+  fontSize: "0.95rem",
   cursor: "pointer",
-  boxShadow: "0 15px 40px rgba(239, 68, 68, 0.4)",
+  boxShadow: "0 10px 25px rgba(239, 68, 68, 0.3)",
   transition: "all 0.4s ease"
 };
 
+const editButtonStyle = {
+  padding: "0.75rem 1.5rem",
+  background: "rgba(96, 165, 250, 0.15)",
+  color: "#60a5fa",
+  border: "1px solid rgba(96, 165, 250, 0.3)",
+  borderRadius: "0.75rem",
+  fontWeight: "800",
+  fontSize: "0.95rem",
+  cursor: "pointer",
+  transition: "all 0.4s ease"
+};
+
+const saveButtonStyle = {
+  padding: "0.85rem 2.5rem",
+  background: "linear-gradient(135deg, #818cf8, #6366f1)",
+  color: "white",
+  border: "none",
+  borderRadius: "0.8rem",
+  fontWeight: "800",
+  fontSize: "1rem",
+  cursor: "pointer",
+  boxShadow: "0 10px 30px rgba(99, 102, 241, 0.4)",
+  transition: "all 0.4s ease"
+};
+
+const editInputStyle = {
+  width: "100%",
+  padding: "6px 10px",
+  background: "rgba(15, 23, 42, 0.8)",
+  border: "1px solid #818cf8",
+  borderRadius: "6px",
+  color: "white",
+  fontSize: "14px",
+  outline: "none"
+};
+
+const tableContainerStyle = {
+  background: "rgba(30, 41, 59, 0.7)",
+  backdropFilter: "blur(20px)",
+  borderRadius: "1.5rem",
+  overflow: "hidden",
+  border: "1px solid rgba(129, 140, 248, 0.2)",
+  boxShadow: "0 25px 70px rgba(0,0,0,0.5)",
+  marginBottom: "2rem"
+};
+
+const thStyle = {
+  padding: "1rem",
+  textAlign: "left",
+  color: "#c4b5fd",
+  fontWeight: "800",
+  fontSize: "0.85rem",
+  borderBottom: "2px solid rgba(129, 140, 248, 0.3)"
+};
+
+const tdStyle = {
+  padding: "0.8rem 1rem",
+  color: "#e0e7ff",
+  fontSize: "0.85rem"
+};
+
+const actionBtnStyle = (color) => ({
+  padding: "6px 12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: `${color}15`,
+  color: color,
+  border: `1px solid ${color}40`,
+  borderRadius: "6px",
+  cursor: "pointer",
+  fontWeight: "700",
+  fontSize: "12px",
+  transition: "all 0.3s ease"
+});
+
+const saveBtnTableStyle = {
+  padding: "4px 10px",
+  background: "#818cf8",
+  color: "white",
+  border: "none",
+  borderRadius: "4px",
+  fontSize: "12px",
+  fontWeight: "bold",
+  cursor: "pointer"
+};
+
+const cancelBtnTableStyle = {
+  padding: "4px 8px",
+  background: "rgba(148, 163, 184, 0.2)",
+  color: "#94a3b8",
+  border: "none",
+  borderRadius: "4px",
+  fontSize: "12px",
+  fontWeight: "bold",
+  cursor: "pointer"
+};
+
 const bulkApproveStyle = {
-  padding: "1rem 2.5rem",
+  padding: "0.7rem 1.8rem",
   background: "linear-gradient(135deg, #10b981, #059669)",
   color: "white",
   border: "none",
-  borderRadius: "1rem",
-  fontWeight: "800",
-  fontSize: "1.05rem",
+  borderRadius: "0.75rem",
+  fontWeight: "700",
+  fontSize: "0.95rem",
   cursor: "pointer",
-  boxShadow: "0 10px 30px rgba(16, 185, 129, 0.4)"
+  boxShadow: "0 6px 20px rgba(16, 185, 129, 0.3)",
+  transition: "all 0.3s ease"
 };
 
 const bulkRejectStyle = {
-  padding: "1rem 2.5rem",
+  padding: "0.7rem 1.8rem",
   background: "linear-gradient(135deg, #ef4444, #dc2626)",
   color: "white",
   border: "none",
-  borderRadius: "1rem",
-  fontWeight: "800",
-  fontSize: "1.05rem",
+  borderRadius: "0.75rem",
+  fontWeight: "700",
+  fontSize: "0.95rem",
   cursor: "pointer",
-  boxShadow: "0 10px 30px rgba(239, 68, 68, 0.4)"
+  boxShadow: "0 6px 20px rgba(239, 68, 68, 0.3)",
+  transition: "all 0.3s ease"
 };
 
 const secondaryButtonStyle = {
-  padding: "0.8rem 2rem",
-  background: "rgba(129, 140, 248, 0.2)",
+  padding: "0.6rem 1.4rem",
+  background: "rgba(129, 140, 248, 0.15)",
   color: "#818cf8",
-  border: "1px solid rgba(129, 140, 248, 0.4)",
-  borderRadius: "0.8rem",
+  border: "1px solid rgba(129, 140, 248, 0.3)",
+  borderRadius: "0.6rem",
   fontWeight: "700",
-  fontSize: "0.95rem",
+  fontSize: "0.85rem",
   cursor: "pointer",
   transition: "all 0.3s ease"
 };
@@ -659,9 +878,9 @@ const loadingStateStyle = {
 
 const emptyStateStyle = {
   textAlign: "center",
-  padding: "8rem 2rem",
+  padding: "3rem 2rem",
   background: "rgba(16, 185, 129, 0.15)",
-  borderRadius: "2rem",
+  borderRadius: "1.5rem",
   border: "2px dashed rgba(16, 185, 129, 0.4)",
   color: "#10b981"
 };
