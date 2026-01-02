@@ -1,10 +1,12 @@
-// Auth.js - FULL PREMIUM GLASSMORPHISM LOGIN PAGE (MOBILE APP LIKE)
 import { useState } from "react";
 import { supabase } from "./supabase";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");           // ← Naya
+  const [department, setDepartment] = useState(""); // ← Naya
+  const [phone, setPhone] = useState("");         // ← Naya
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isSignup, setIsSignup] = useState(false);
@@ -16,11 +18,25 @@ export default function Auth() {
 
     try {
       if (isSignup) {
-        const { error } = await supabase.auth.signUp({
+        // Validation for extra fields
+        if (!name.trim()) throw new Error("Full name is required");
+        if (!department.trim()) throw new Error("Department is required");
+
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              name: name.trim(),
+              department: department.trim(),
+              phone: phone.trim() || null, // optional field
+            },
+          },
         });
+
         if (error) throw error;
+        if (!data.user) throw new Error("Signup failed");
+
         setMessage("✅ Check your email for confirmation link!");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -39,29 +55,59 @@ export default function Auth() {
 
   return (
     <div className="auth-container">
-      {/* PREMIUM GLASS CARD */}
       <div className="auth-card">
         <div className="logo-container">
-          <img
-            src="/kmp-logo.png?v=5"
-            alt="Logo"
-            className="logo"
-          />
+          <img src="/kmp-logo.png?v=5" alt="Logo" className="logo" />
         </div>
 
         <h2 className="title">
           {isSignup ? "Create Account" : "Welcome Back"}
         </h2>
 
-        {/* MESSAGE */}
         {message && (
           <div className={`message ${message.startsWith("✅") ? "success" : "error"}`}>
             {message}
           </div>
         )}
 
-        {/* FORM */}
         <form onSubmit={handleSubmit} className="auth-form">
+          {/* EXTRA FIELDS ONLY IN SIGNUP MODE */}
+          {isSignup && (
+            <>
+              <div className="input-wrapper">
+                <input
+                  type="text"
+                  placeholder="Full Name *"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="auth-input"
+                />
+              </div>
+
+              <div className="input-wrapper">
+                <input
+                  type="text"
+                  placeholder="Department *"
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  required
+                  className="auth-input"
+                />
+              </div>
+
+              <div className="input-wrapper">
+                <input
+                  type="tel"
+                  placeholder="Phone Number (optional)"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="auth-input"
+                />
+              </div>
+            </>
+          )}
+
           <div className="input-wrapper">
             <input
               type="email"
@@ -85,14 +131,10 @@ export default function Auth() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="submit-btn"
-          >
+          <button type="submit" disabled={loading} className="submit-btn">
             {loading ? (
               <span className="loading-state">
-                <span className="spinner"></span> 
+                <span className="spinner"></span>
                 {isSignup ? "Creating Account..." : "Logging in..."}
               </span>
             ) : (
@@ -101,12 +143,14 @@ export default function Auth() {
           </button>
         </form>
 
-        {/* TOGGLE MODE */}
         <div className="toggle-container">
           {isSignup ? "Already have an account?" : "New user?"}{" "}
           <button
             type="button"
-            onClick={() => setIsSignup(!isSignup)}
+            onClick={() => {
+              setIsSignup(!isSignup);
+              setMessage(""); // clear message on toggle
+            }}
             className="toggle-btn"
             disabled={loading}
           >
@@ -114,7 +158,6 @@ export default function Auth() {
           </button>
         </div>
 
-        {/* FOOTER */}
         <div className="footer">
           SmartHourly Production Management © 2025
         </div>
@@ -124,7 +167,6 @@ export default function Auth() {
     </div>
   );
 }
-
 // RESPONSIVE MOBILE-APP LIKE GLOBAL STYLES
 const globalStyles = `
   :root {
@@ -426,6 +468,7 @@ const globalStyles = `
   }
 
   @media (min-width: 768px) {
+  
     .auth-card {
       max-width: 420px;
       padding: 40px 32px;

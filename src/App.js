@@ -1,4 +1,4 @@
-// App.js — PREMIUM MOBILE-APP LIKE UI (LOGIC UNCHANGED + MOBILE SCROLL FIXED)
+// App.js — UPDATED: ATL = Supervisors Only Dropdown + Reason Field Removed
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase";
@@ -61,10 +61,12 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [customers, setCustomers] = useState([]);
+  const [supervisors, setSupervisors] = useState([]); // ← NEW: Only supervisors for ATL
 
   const showToast = (m, t = "success") => setToast({ message: m, type: t });
   const updateHeader = e => setHeader({ ...header, [e.target.name]: e.target.value });
 
+  // Fetch Customers (unchanged)
   useEffect(() => {
     async function fetchCustomers() {
       try {
@@ -91,6 +93,44 @@ export default function App() {
       finally { setLoading(false); }
     }
     fetchCustomers();
+  }, []);
+
+  // NEW: Fetch only supervisors for ATL dropdown
+  useEffect(() => {
+    async function fetchSupervisors() {
+      try {
+        // Step 1: Get IDs of users with role = supervisor
+        const { data: supervisorRoles, error: roleError } = await supabase
+          .from("user_roles")
+          .select("id")
+          .eq("role", "supervisor");
+
+        if (roleError || !supervisorRoles || supervisorRoles.length === 0) {
+          setSupervisors([]);
+          return;
+        }
+
+        const supervisorIds = supervisorRoles.map(r => r.id);
+
+        // Step 2: Get their names from profiles
+        const { data: supervisorProfiles, error: profileError } = await supabase
+          .from("profiles")
+          .select("id, name")
+          .in("id", supervisorIds)
+          .order("name", { ascending: true });
+
+        if (profileError) {
+          console.error("Error fetching supervisor profiles:", profileError);
+          setSupervisors([]);
+        } else {
+          setSupervisors(supervisorProfiles || []);
+        }
+      } catch (err) {
+        console.error("Unexpected error fetching supervisors:", err);
+        setSupervisors([]);
+      }
+    }
+    fetchSupervisors();
   }, []);
 
   async function fetchMONumbers(customerId, rowIndex) {
@@ -142,7 +182,7 @@ export default function App() {
       mo_type: "", mo_number: "", moNumbers: [],
       downtime: 0, downtime_detail: "No downtime",
       downtime_issue: "", other_reason: "",
-      atl: "", reason: "", remarks: ""
+      atl: "", remarks: ""  // reason removed
     })));
     setLoading(false);
   }, [header]);
@@ -215,7 +255,7 @@ export default function App() {
 
       <h1 className="app-title">Smart Sheet</h1>
 
-      {/* HEADER CARD */}
+      {/* HEADER CARD - unchanged */}
       <div className="header-card">
         <div className="header-grid">
           <div className="input-group">
@@ -265,7 +305,7 @@ export default function App() {
             <div key={i} className="slot-card">
               <h3 className="slot-time">⏰ {r.time_slot}</h3>
 
-              {/* Customer, MO Type, MO Number */}
+              {/* Customer, MO Type, MO Number - unchanged */}
               <div className="form-grid">
                 <div className="input-group">
                   <label>Customer *</label>
@@ -340,7 +380,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Meters & Qty */}
+              {/* Meters & Qty - unchanged */}
               <div className="form-grid-4">
                 <div className="input-group">
                   <label>From Meter</label>
@@ -368,7 +408,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Downtime Section */}
+              {/* Downtime Section - unchanged */}
               <div className="form-grid">
                 <div className="input-group">
                   <label>Downtime</label>
@@ -415,31 +455,42 @@ export default function App() {
                   </div>
                 )}
 
+                {/* ATL as Dropdown - Only Supervisors */}
                 <div className="input-group">
-                  <label>ATL</label>
-                  <input value={r.atl}
+                  <label>ATL (Supervisor)</label>
+                  <select
+                    value={r.atl || ""}
                     onChange={e => updateRow(i, "atl", e.target.value)}
-                    className="app-input" />
+                    className="app-input"
+                  >
+                    <option value="">Select Supervisor</option>
+                    {supervisors.length === 0 ? (
+                      <option value="" disabled>No Supervisor Available</option>
+                    ) : (
+                      supervisors.map(user => (
+                        <option key={user.id} value={user.name}>
+                          {user.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
                 </div>
               </div>
 
-              {/* Reason & Remarks */}
+              {/* Only Remarks (Reason removed) */}
               <div className="form-grid-2">
-                <div className="input-group">
-                  <label>Reason</label>
-                  <input value={r.reason}
-                    onChange={e => updateRow(i, "reason", e.target.value)}
-                    className="app-input" />
-                </div>
-                <div className="input-group">
+                <div className="input-group full-width">
                   <label>Remarks</label>
-                  <input value={r.remarks}
+                  <input
+                    value={r.remarks}
                     onChange={e => updateRow(i, "remarks", e.target.value)}
-                    className="app-input" />
+                    className="app-input"
+                    placeholder="Any additional remarks"
+                  />
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons - unchanged */}
               <div className="action-buttons">
                 <button onClick={() => submitSlot(i)} className="submit-btn">
                   Submit Slot
@@ -458,7 +509,7 @@ export default function App() {
   );
 }
 
-/* UPDATED PREMIUM MOBILE-APP STYLE CSS - NO HORIZONTAL SCROLL */
+/* CSS unchanged - same as before */
 const globalStyles = `
   :root {
     --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
@@ -488,7 +539,6 @@ const globalStyles = `
     min-height: 100vh;
     width: 100%;
     max-width: 100vw;
-   
     padding: clamp(12px, 3vw, 20px) clamp(8px, 2vw, 12px);
     color: var(--text-primary);
     font-family: system-ui, -apple-system, sans-serif;
@@ -684,12 +734,13 @@ const globalStyles = `
   @keyframes spin { to { transform: rotate(360deg); } }
 
   @media (min-width: 640px) {
-  .app-container {
-   background: 
-      radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.25), transparent 50%),
-      radial-gradient(circle at 80% 20%, rgba(120, 219, 255, 0.25), transparent 50%),
-      var(--bg-gradient);
+    .app-container {
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.25), transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(120, 219, 255, 0.25), transparent 50%),
+        var(--bg-gradient);
       width: 100%;
+    }
     .header-grid, .form-grid {
       grid-template-columns: repeat(3, 1fr);
       gap: 16px;
@@ -700,7 +751,6 @@ const globalStyles = `
 
   @media (min-width: 768px) {
     .app-container {
-      // max-width: 1000px;
       width: 100%;
       margin: 0 auto;
       padding-left: clamp(16px, 4vw, 32px);
@@ -711,8 +761,9 @@ const globalStyles = `
   }
 
   @media (max-width: 480px) {
-  .app-container {
-  width: 100%;
+    .app-container {
+      width: 100%;
+    }
     .form-grid-4 { grid-template-columns: 1fr 1fr; }
   }
 `;
