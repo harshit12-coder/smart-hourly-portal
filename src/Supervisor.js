@@ -1,17 +1,7 @@
+// Supervisor.js - COMPLETE UPDATED & FINAL VERSION (Bulk Buttons Fixed + Screenshot Match)
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "./supabase";
 import { utils, writeFile } from "xlsx";
-
-const globalStyles = `
-  @keyframes reveal {
-    from { opacity: 0; transform: translateY(20px) scale(0.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  @keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-  }
-`;
 
 const LINES = Array.from({ length: 18 }).map(
   (_, i) => `Line-${String(i + 1).padStart(2, "0")}`
@@ -24,25 +14,7 @@ function Toast({ message, type, onClose }) {
   }, [onClose]);
 
   return (
-    <div style={{
-      position: "fixed",
-      top: 100,
-      right: 30,
-      background: type === "success"
-        ? "linear-gradient(135deg, #10b981, #059669)"
-        : "linear-gradient(135deg, #ef4444, #dc2626)",
-      color: "white",
-      padding: "16px 28px",
-      borderRadius: "16px",
-      boxShadow: "0 15px 40px rgba(0,0,0,0.4)",
-      fontWeight: "600",
-      fontSize: "16px",
-      zIndex: 10000,
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      animation: "slideIn 0.4s ease"
-    }}>
+    <div className="toast">
       <span>{type === "success" ? "✅" : "❌"}</span>
       {message}
     </div>
@@ -63,7 +35,7 @@ export default function Supervisor() {
   const [editingId, setEditingId] = useState(null);
   const [tempData, setTempData] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 5;
+  const rowsPerPage = 8;
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -134,7 +106,7 @@ export default function Supervisor() {
     const worksheet = utils.json_to_sheet(dataToExport);
     const workbook = utils.book_new();
     utils.book_append_sheet(workbook, worksheet, "Pending Entries");
-    writeFile(workbook, `SmartHourly_Pending_${new Date().toISOString().split('T')[0]}.xlsx`);
+    writeFile(workbook, `SmartHourly_Pending_${filters.date}.xlsx`);
   };
 
   useEffect(() => {
@@ -181,7 +153,7 @@ export default function Supervisor() {
       return;
     }
 
-    showToast("Entry approved successfully!", "success");
+    showToast("Entry approved!", "success");
     setRows(rows.filter(r => r.id !== id));
     setSelected(selected.filter(s => s !== id));
   }
@@ -308,92 +280,58 @@ export default function Supervisor() {
       return;
     }
 
-    showToast("Entry updated successfully!", "success");
+    showToast("Entry updated!", "success");
     setRows(rows.map(r => (r.id === editingId ? { ...r, ...tempData } : r)));
     setEditingId(null);
     setTempData({});
   }
 
   return (
-    <div style={{ padding: "1rem", maxWidth: "1400px", width: "100%", margin: "0 auto" }}>
+    <div className="supervisor-container">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      <style>{globalStyles}</style>
 
-      <h1 style={{
-        fontSize: "clamp(1.3rem, 4vw, 1.8rem)",
-        fontWeight: "900",
-        textAlign: "center",
-        marginBottom: "1rem",
-        background: "linear-gradient(90deg, #c4b5fd, #818cf8, #60a5fa)",
-        WebkitBackgroundClip: "text",
-        WebkitTextFillColor: "transparent",
-        textShadow: "0 0 25px rgba(196, 181, 253, 0.4)",
-        animation: "reveal 0.8s ease both"
-      }}>
-        SmartHourly Review Panel
-      </h1>
-
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
-        <button onClick={exportToExcel} style={{
-          padding: "0.6rem 1.2rem",
-          background: "rgba(129, 140, 248, 0.1)",
-          color: "#c4b5fd",
-          border: "1px solid rgba(129, 140, 248, 0.2)",
-          borderRadius: "0.7rem",
-          fontWeight: "700",
-          fontSize: "0.85rem",
-          cursor: "pointer",
-          backdropFilter: "blur(10px)",
-          transition: "all 0.4s ease",
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem"
-        }}>
-          📥 Export to Excel
-        </button>
-      </div>
+      <h1 className="page-title">SmartHourly Review Panel</h1>
 
       {name && (
-        <div style={{
-          textAlign: "center",
-          color: "#a78bfa",
-          fontSize: "0.95rem",
-          marginBottom: "1.5rem",
-          fontWeight: "600"
-        }}>
-          👤 Logged in as: <span style={{ color: "#e0e7ff", fontWeight: "800" }}>{name}</span>
+        <div className="user-info">
+          👤 Logged in as: <strong>{name}</strong>
         </div>
       )}
 
-      {/* FILTERS */}
-      <div style={{
-        background: "rgba(30, 41, 59, 0.75)",
-        backdropFilter: "blur(24px)",
-        borderRadius: "1rem",
-        padding: "1.25rem",
-        border: "1px solid rgba(129, 140, 248, 0.3)",
-        boxShadow: "0 25px 60px rgba(0,0,0,0.4)",
-        marginBottom: "1.5rem"
-      }}>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "1rem"
-        }}>
-          <div>
-            <label style={{ display: "block", color: "#94a3b8", marginBottom: "0.5rem", fontSize: "0.85rem", fontWeight: "600" }}>📅 Review Date</label>
-            <input type="date" value={filters.date} onChange={e => setFilters({ ...filters, date: e.target.value })} style={inputStyle} />
+      <button onClick={exportToExcel} className="export-btn">
+        📥 Export Pending to Excel
+      </button>
+
+      {/* FILTERS CARD */}
+      <div className="filters-card">
+        <div className="filters-grid">
+          <div className="input-group">
+            <label>📅 Review Date</label>
+            <input
+              type="date"
+              value={filters.date}
+              onChange={e => setFilters({ ...filters, date: e.target.value })}
+              className="app-input"
+            />
           </div>
-          <div>
-            <label style={{ display: "block", color: "#94a3b8", marginBottom: "0.5rem", fontSize: "0.85rem", fontWeight: "600" }}>🔧 Line</label>
-            <select value={filters.line} onChange={e => setFilters({ ...filters, line: e.target.value })} style={inputStyle}>
+          <div className="input-group">
+            <label>🔧 Line</label>
+            <select
+              value={filters.line}
+              onChange={e => setFilters({ ...filters, line: e.target.value })}
+              className="app-input"
+            >
               <option value="">All Lines</option>
               {LINES.map(l => <option key={l}>{l}</option>)}
             </select>
           </div>
-          <div>
-            <label style={{ display: "block", color: "#94a3b8", marginBottom: "0.5rem", fontSize: "0.85rem", fontWeight: "600" }}>⏰ Shift</label>
-            <select value={filters.shift} onChange={e => setFilters({ ...filters, shift: e.target.value })} style={inputStyle}>
+          <div className="input-group">
+            <label>⏰ Shift</label>
+            <select
+              value={filters.shift}
+              onChange={e => setFilters({ ...filters, shift: e.target.value })}
+              className="app-input"
+            >
               <option value="">All Shifts</option>
               <option value="A">A Shift</option>
               <option value="B">B Shift</option>
@@ -403,250 +341,719 @@ export default function Supervisor() {
         </div>
       </div>
 
-      {/* BULK ACTIONS */}
+      {/* BULK ACTIONS - PERFECTLY MATCHES YOUR SCREENSHOT */}
       {rows.length > 0 && (
-        <div style={{
-          background: "rgba(30, 41, 59, 0.7)",
-          backdropFilter: "blur(20px)",
-          borderRadius: "1rem",
-          padding: "1rem",
-          marginBottom: "1.5rem",
-          border: "1px solid rgba(129, 140, 248, 0.2)",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1rem"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-            <button onClick={selectAll} style={{
-              padding: "0.55rem 1.2rem",
-              background: "rgba(129, 140, 248, 0.15)",
-              color: "#818cf8",
-              border: "1px solid rgba(129, 140, 248, 0.3)",
-              borderRadius: "0.6rem",
-              fontWeight: "700",
-              fontSize: "0.85rem",
-              cursor: "pointer"
-            }}>
+        <div className="bulk-actions">
+          <div className="selection-info">
+            <button onClick={selectAll} className="select-all-btn">
               {selected.length === rows.length ? "Deselect All" : `Select All (${rows.length})`}
             </button>
-            <span style={{ color: "#94a3b8", fontSize: "0.85rem", fontWeight: "600" }}>
-              {selected.length} selected
-            </span>
+            <span className="selected-count">{selected.length} selected</span>
           </div>
 
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-            <button onClick={bulkApprove} disabled={selected.length === 0 || loading} style={{
-              padding: "0.6rem 1.4rem",
-              background: "linear-gradient(135deg, #10b981, #059669)",
-              color: "white",
-              border: "none",
-              borderRadius: "0.7rem",
-              fontWeight: "700",
-              fontSize: "0.85rem",
-              cursor: "pointer",
-              boxShadow: "0 6px 20px rgba(16, 185, 129, 0.3)"
-            }}>
-              ✅ Approve ({selected.length})
+          <div className="bulk-buttons">
+            <button
+              onClick={bulkApprove}
+              disabled={selected.length === 0 || loading}
+              className="bulk-approve"
+            >
+               Approve ({selected.length || 0})
             </button>
-            <button onClick={bulkReject} disabled={selected.length === 0 || loading} style={{
-              padding: "0.6rem 1.4rem",
-              background: "linear-gradient(135deg, #ef4444, #dc2626)",
-              color: "white",
-              border: "none",
-              borderRadius: "0.7rem",
-              fontWeight: "700",
-              fontSize: "0.85rem",
-              cursor: "pointer",
-              boxShadow: "0 6px 20px rgba(239, 68, 68, 0.3)"
-            }}>
-              ❌ Reject
+            <button
+              onClick={bulkReject}
+              disabled={selected.length === 0 || loading}
+              className="bulk-reject"
+            >
+               Reject ({selected.length || 0})
             </button>
           </div>
         </div>
       )}
 
-      {/* CONTENT */}
+      {/* ENTRIES LIST */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: "3rem 2rem", color: "#94a3b8", fontSize: "1.2rem", background: "rgba(129, 140, 248, 0.05)", borderRadius: "1.5rem" }}>
-          🔄 Loading pending entries...
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Loading pending entries...</p>
         </div>
       ) : rows.length === 0 ? (
-        <div style={{
-          textAlign: "center",
-          padding: "2.5rem 2rem",
-          background: "rgba(16, 185, 129, 0.1)",
-          borderRadius: "1.25rem",
-          border: "2px dashed rgba(16, 185, 129, 0.3)",
-          color: "#10b981",
-          maxWidth: "500px",
-          margin: "0 auto"
-        }}>
-          <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🎉</div>
-          <div style={{ fontSize: "1.5rem", fontWeight: "800", marginBottom: "0.5rem" }}>No Pending Approvals</div>
-          <div style={{ fontSize: "1rem", opacity: 0.8 }}>
-            Great job! All submitted entries have been reviewed.
-          </div>
+        <div className="empty-state">
+          <div className="celebration">🎉</div>
+          <h3>No Pending Approvals</h3>
+          <p>Great job! All entries have been reviewed.</p>
         </div>
       ) : (
-        <div style={{
-          background: "rgba(30, 41, 59, 0.7)",
-          backdropFilter: "blur(20px)",
-          borderRadius: "1.25rem",
-          overflow: "hidden",
-          border: "1px solid rgba(129, 140, 248, 0.2)",
-          boxShadow: "0 25px 70px rgba(0,0,0,0.5)",
-          marginBottom: "2rem"
-        }}>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
-              <thead>
-                <tr style={{ background: "rgba(51, 65, 85, 0.9)" }}>
-                  <th style={thStyle}>
-                    <input type="checkbox" checked={selected.length === rows.length && rows.length > 0} onChange={selectAll} style={{ cursor: "pointer", width: "18px", height: "18px" }} />
-                  </th>
-                  <th style={thStyle}>Slot</th>
-                  <th style={thStyle}>Customer</th>
-                  <th style={thStyle}>MO Details</th>
-                  <th style={thStyle}>OK</th>
-                  <th style={thStyle}>NOK</th>
-                  <th style={thStyle}>Downtime</th>
-                  <th style={thStyle}>Reason</th>
-                  <th style={thStyle}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentRows.map(r => (
-                  <tr key={r.id} style={{ background: selected.includes(r.id) ? "rgba(129, 140, 248, 0.15)" : "transparent", borderBottom: "1px solid rgba(129, 140, 248, 0.1)" }}>
-                    <td style={tdStyle}>
-                      <input type="checkbox" checked={selected.includes(r.id)} onChange={() => toggleSelect(r.id)} style={{ cursor: "pointer", width: "16px", height: "16px" }} />
-                    </td>
-                    <td style={{ ...tdStyle, color: "#c4b5fd", fontWeight: "700" }}>{r.time_slot}</td>
-                    <td style={tdStyle}>
-                      {editingId === r.id ? (
-                        <input value={tempData.customer_name} onChange={e => updateTemp("customer_name", e.target.value)} style={editInputStyle} />
-                      ) : (r.customer_name || "-")}
-                    </td>
-                    <td style={tdStyle}>
-                      {editingId === r.id ? (
-                        <div style={{ display: "flex", gap: "4px" }}>
-                          <select value={tempData.mo_type} onChange={e => updateTemp("mo_type", e.target.value)} style={{ ...editInputStyle, padding: "4px" }}>
-                            <option value="Fresh">F</option>
-                            <option value="Rework">R</option>
-                          </select>
-                          <input value={tempData.mo_number} onChange={e => updateTemp("mo_number", e.target.value)} style={editInputStyle} />
-                        </div>
-                      ) : (<span>{r.mo_number || "-"} <small style={{ opacity: 0.7 }}>({r.mo_type})</small></span>)}
-                    </td>
-                    <td style={{ ...tdStyle, color: "#10b981", fontWeight: "700" }}>
-                      {editingId === r.id ? (
-                        <input type="number" value={tempData.ok_qty} onChange={e => updateTemp("ok_qty", e.target.value)} style={{ ...editInputStyle, width: "60px" }} />
-                      ) : (r.ok_qty)}
-                    </td>
-                    <td style={{ ...tdStyle, color: "#ef4444", fontWeight: "700" }}>
-                      {editingId === r.id ? (
-                        <input type="number" value={tempData.nok_qty} onChange={e => updateTemp("nok_qty", e.target.value)} style={{ ...editInputStyle, width: "60px" }} />
-                      ) : (r.nok_qty)}
-                    </td>
-                    <td style={tdStyle}>
-                      {editingId === r.id ? (
-                        <select value={tempData.downtime} onChange={e => updateTemp("downtime", e.target.value)} style={editInputStyle}>
-                          {[0, 5, 10, 15, 20, 30, 45, 60].map(v => (<option key={v} value={v}>{v}m</option>))}
+        <>
+          <div className="entries-list">
+            {currentRows.map(r => (
+              <div key={r.id} className={`entry-card ${selected.includes(r.id) ? "selected" : ""}`}>
+                <div className="card-header">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(r.id)}
+                    onChange={() => toggleSelect(r.id)}
+                    className="checkbox"
+                  />
+                  <div className="slot-time">⏰ {r.time_slot}</div>
+                </div>
+
+                <div className="card-grid">
+                  <div className="field">
+                    <label>Customer</label>
+                    {editingId === r.id ? (
+                      <input
+                        value={tempData.customer_name || ""}
+                        onChange={e => updateTemp("customer_name", e.target.value)}
+                        className="edit-input"
+                      />
+                    ) : (
+                      <span className="value">{r.customer_name || "-"}</span>
+                    )}
+                  </div>
+
+                  <div className="field">
+                    <label>MO Details</label>
+                    {editingId === r.id ? (
+                      <div className="mo-edit">
+                        <select
+                          value={tempData.mo_type || ""}
+                          onChange={e => updateTemp("mo_type", e.target.value)}
+                          className="edit-input small"
+                        >
+                          <option value="Fresh">Fresh</option>
+                          <option value="Rework">Rework</option>
                         </select>
-                      ) : (<span style={{ color: r.downtime > 30 ? "#ef4444" : "#f59e0b" }}>{r.downtime || 0}m</span>)}
-                    </td>
-                    <td style={tdStyle}>
-                      {editingId === r.id ? (
-                        <input value={tempData.downtime_detail} onChange={e => updateTemp("downtime_detail", e.target.value)} style={editInputStyle} />
-                      ) : (<span style={{ fontSize: "12px", fontStyle: "italic" }}>{r.downtime_detail || "-"}</span>)}
-                    </td>
-                    <td style={tdStyle}>
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        {editingId === r.id ? (
-                          <>
-                            <button onClick={saveEdit} disabled={loading} style={{ padding: "4px 10px", background: "#818cf8", color: "white", border: "none", borderRadius: "4px", fontSize: "12px", fontWeight: "bold", cursor: "pointer" }}>Save</button>
-                            <button onClick={cancelEdit} disabled={loading} style={{ padding: "4px 8px", background: "rgba(148, 163, 184, 0.2)", color: "#94a3b8", border: "none", borderRadius: "4px", fontSize: "12px", fontWeight: "bold", cursor: "pointer" }}>X</button>
-                          </>
-                        ) : (
-                          <>
-                            <button onClick={() => approve(r.id)} disabled={loading} style={actionBtn("#10b981")}>Approve</button>
-                            <button onClick={() => startEdit(r)} disabled={loading} style={actionBtn("#60a5fa")}>Edit</button>
-                            <button onClick={() => reject(r.id)} disabled={loading} style={actionBtn("#ef4444")}>Reject</button>
-                          </>
-                        )}
+                        <input
+                          value={tempData.mo_number || ""}
+                          onChange={e => updateTemp("mo_number", e.target.value)}
+                          className="edit-input"
+                        />
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    ) : (
+                      <span className="value">
+                        {r.mo_number || "-"} <small>({r.mo_type})</small>
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="field highlight ok">
+                    <label>OK Qty</label>
+                    {editingId === r.id ? (
+                      <input
+                        type="number"
+                        value={tempData.ok_qty || ""}
+                        onChange={e => updateTemp("ok_qty", e.target.value)}
+                        className="edit-input"
+                      />
+                    ) : (
+                      <span className="value big">{r.ok_qty || 0}</span>
+                    )}
+                  </div>
+
+                  <div className="field highlight nok">
+                    <label>NOK Qty</label>
+                    {editingId === r.id ? (
+                      <input
+                        type="number"
+                        value={tempData.nok_qty || ""}
+                        onChange={e => updateTemp("nok_qty", e.target.value)}
+                        className="edit-input"
+                      />
+                    ) : (
+                      <span className="value big">{r.nok_qty || 0}</span>
+                    )}
+                  </div>
+
+                  <div className="field">
+                    <label>Downtime</label>
+                    {editingId === r.id ? (
+                      <select
+                        value={tempData.downtime || 0}
+                        onChange={e => updateTemp("downtime", e.target.value)}
+                        className="edit-input"
+                      >
+                        {[0, 5, 10, 15, 20, 30, 45, 60].map(v => (
+                          <option key={v} value={v}>{v} min</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className={`value ${r.downtime > 30 ? "high" : r.downtime > 0 ? "medium" : ""}`}>
+                        {r.downtime || 0} min
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="field full">
+                    <label>Downtime Reason</label>
+                    {editingId === r.id ? (
+                      <input
+                        value={tempData.downtime_detail || ""}
+                        onChange={e => updateTemp("downtime_detail", e.target.value)}
+                        className="edit-input"
+                        placeholder="Enter reason"
+                      />
+                    ) : (
+                      <span className="value italic">{r.downtime_detail || "No downtime"}</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="card-actions">
+                  {editingId === r.id ? (
+                    <>
+                      <button onClick={saveEdit} disabled={loading} className="action-btn save">
+                        Save
+                      </button>
+                      <button onClick={cancelEdit} disabled={loading} className="action-btn cancel">
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => approve(r.id)} disabled={loading} className="action-btn approve">
+                        Approve
+                      </button>
+                      <button onClick={() => startEdit(r)} disabled={loading} className="action-btn edit">
+                        Edit
+                      </button>
+                      <button onClick={() => reject(r.id)} disabled={loading} className="action-btn reject">
+                        Reject
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="page-btn">
+                Previous
+              </button>
+              <span className="page-info">
+                Page <strong>{currentPage}</strong> of {totalPages}
+              </span>
+              <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="page-btn">
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
 
-      {totalPages > 1 && (
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", marginTop: "20px", padding: "20px" }}>
-          <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} style={{ padding: "8px 16px", background: "rgba(15, 23, 42, 0.5)", color: currentPage === 1 ? "#475569" : "#e0e7ff", border: "1px solid rgba(129, 140, 248, 0.2)", borderRadius: "10px", cursor: currentPage === 1 ? "default" : "pointer" }}>
-            Previous
-          </button>
-          <div style={{ color: "#94a3b8", fontWeight: "600", fontSize: "14px" }}>
-            Page <span style={{ color: "#c4b5fd" }}>{currentPage}</span> of {totalPages}
-          </div>
-          <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} style={{ padding: "8px 16px", background: "rgba(15, 23, 42, 0.5)", color: currentPage === totalPages ? "#475569" : "#e0e7ff", border: "1px solid rgba(129, 140, 248, 0.2)", borderRadius: "10px", cursor: currentPage === totalPages ? "default" : "pointer" }}>
-            Next
-          </button>
-        </div>
-      )}
+      <style jsx>{globalStyles}</style>
     </div>
   );
 }
 
-const inputStyle = {
-  width: "100%",
-  padding: "0.65rem 0.9rem",
-  background: "rgba(15, 23, 42, 0.9)",
-  border: "1px solid rgba(129, 140, 248, 0.4)",
-  borderRadius: "0.7rem",
-  color: "#e0e7ff",
-  fontSize: "0.9rem",
-  backdropFilter: "blur(12px)"
-};
+const globalStyles = `
+  :root {
+    --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    --glass-bg: rgba(30, 41, 59, 0.85);
+    --glass-border: rgba(129, 140, 248, 0.25);
+    --input-bg: rgba(15, 23, 42, 0.9);
+    --input-border: rgba(129, 140, 248, 0.3);
+    --text-primary: #e0e7ff;
+    --text-secondary: #94a3b8;
+    --accent: #818cf8;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+  }
 
-const editInputStyle = {
-  width: "100%",
-  padding: "6px 10px",
-  background: "rgba(15, 23, 42, 0.8)",
-  border: "1px solid #818cf8",
-  borderRadius: "6px",
-  color: "white",
-  fontSize: "14px",
-  outline: "none"
-};
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-const thStyle = {
-  padding: "1rem",
-  textAlign: "left",
-  color: "#c4b5fd",
-  fontWeight: "800",
-  fontSize: "0.85rem",
-  borderBottom: "2px solid rgba(129, 140, 248, 0.3)"
-};
+  .supervisor-container {
+    min-height: 100vh;
+    width: 100vw;
+    background: 
+      radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.25), transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(120, 219, 255, 0.25), transparent 50%),
+      var(--bg-gradient);
+    padding: clamp(16px, 4vw, 32px);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, sans-serif;
+  }
 
-const tdStyle = {
-  padding: "0.8rem 1rem",
-  color: "#e0e7ff",
-  fontSize: "0.85rem"
-};
+  .page-title {
+    text-align: center;
+    font-size: clamp(1.8rem, 5vw, 2.2rem);
+    font-weight: 900;
+    margin: 0 0 20px;
+    background: linear-gradient(90deg, #c7d2fe, #818cf8, #60a5fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 
-const actionBtn = (color) => ({
-  padding: "6px 12px",
-  background: `${color}15`,
-  color: color,
-  border: `1px solid ${color}40`,
-  borderRadius: "6px",
-  cursor: "pointer",
-  fontWeight: "700",
-  fontSize: "12px"
-});
+  .user-info {
+    text-align: center;
+    color: #a78bfa;
+    font-size: clamp(0.95rem, 3vw, 1.1rem);
+    margin-bottom: 24px;
+    font-weight: 600;
+  }
+
+  .user-info strong {
+    color: var(--text-primary);
+    font-weight: 800;
+  }
+
+  .export-btn {
+    display: block;
+    width: fit-content;
+    margin: 0 auto 28px;
+    padding: clamp(12px, 3vw, 16px) clamp(20px, 5vw, 32px);
+    background: rgba(129, 140, 248, 0.15);
+    color: #c4b5fd;
+    border: 1.5px solid rgba(129, 140, 248, 0.3);
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: clamp(15px, 3.5vw, 17px);
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+  }
+
+  .export-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 50px rgba(129, 140, 248, 0.2);
+  }
+
+  .filters-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(32px);
+    border-radius: 24px;
+    padding: clamp(20px, 4vw, 28px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    margin-bottom: 28px;
+  }
+
+  .filters-grid {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: 1fr;
+  }
+
+  .input-group label {
+    display: block;
+    color: #c4b5fd;
+    font-size: clamp(14px, 3vw, 15px);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .app-input {
+    width: 100%;
+    padding: clamp(14px, 3.5vw, 18px) 18px;
+    background: var(--input-bg);
+    border: 1.5px solid var(--input-border);
+    border-radius: 16px;
+    color: var(--text-primary);
+    font-size: clamp(15px, 3.5vw, 17px);
+    backdrop-filter: blur(16px);
+    outline: none;
+    transition: all 0.3s ease;
+  }
+
+  .app-input:focus {
+    border-color: #818cf8;
+    box-shadow: 0 0 28px rgba(129, 140, 248, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .bulk-actions {
+    background: var(--glass-bg);
+    backdrop-filter: blur(32px);
+    border-radius: 24px;
+    padding: clamp(16px, 3vw, 20px);
+    margin-bottom: 20px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .selection-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .select-all-btn {
+    padding: 10px 16px;
+    background: rgba(129, 140, 248, 0.2);
+    color: #818cf8;
+    border: 1px solid rgba(129, 140, 248, 0.4);
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .selected-count {
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  .bulk-buttons {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .bulk-approve, .bulk-reject {
+    flex: 1;
+    padding: 5px 5px;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-weight: 800;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 60px;
+  }
+
+  .bulk-approve {
+    background: linear-gradient(135deg, #10b981, #059669);
+  }
+
+  .bulk-reject {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+  }
+
+  .bulk-approve:disabled, .bulk-reject:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .bulk-approve:hover:not(:disabled), .bulk-reject:hover:not(:disabled) {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+
+  .loading-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-secondary);
+  }
+
+  .spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(129,140,248,0.3);
+    border-top-color: #818cf8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: rgba(16, 185, 129, 0.15);
+    border: 2px dashed rgba(16, 185, 129, 0.5);
+    border-radius: 32px;
+    margin: 20px auto;
+    max-width: 500px;
+  }
+
+  .celebration {
+    font-size: 5rem;
+    margin-bottom: 16px;
+  }
+
+  .empty-state h3 {
+    font-size: clamp(1.4rem, 4vw, 1.8rem);
+    color: #10b981;
+    font-weight: 900;
+    margin-bottom: 12px;
+  }
+
+  .empty-state p {
+    color: var(--text-secondary);
+    font-size: 16px;
+  }
+
+  .entries-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .entry-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(32px);
+    border-radius: 24px;
+    padding: clamp(18px, 4vw, 24px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    transition: all 0.3s ease;
+  }
+
+  .entry-card.selected {
+    border-color: #818cf8;
+    box-shadow: 0 0 40px rgba(129, 140, 248, 0.3);
+  }
+
+  .entry-card:hover {
+    transform: translateY(-4px);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .checkbox {
+    width: 20px;
+    height: 20px;
+    accent-color: #818cf8;
+  }
+
+  .slot-time {
+    font-size: clamp(1.3rem, 4vw, 1.5rem);
+    font-weight: 800;
+    color: #c4b5fd;
+  }
+
+  .card-grid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 24px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field.full {
+    grid-column: 1 / -1;
+  }
+
+  .field.highlight {
+    background: rgba(15, 23, 42, 0.4);
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .field.ok .value.big {
+    color: #10b981;
+    font-weight: 900;
+    font-size: 1.6rem;
+  }
+
+  .field.nok .value.big {
+    color: #ef4444;
+    font-weight: 900;
+    font-size: 1.6rem;
+  }
+
+  .field label {
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .field .value {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .field .value.italic {
+    font-style: italic;
+    opacity: 0.8;
+    font-size: 15px;
+  }
+
+  .field .value.high {
+    color: #ef4444;
+    font-weight: 800;
+  }
+
+  .field .value.medium {
+    color: #f59e0b;
+    font-weight: 700;
+  }
+
+  .mo-edit {
+    display: flex;
+    gap: 8px;
+  }
+
+  .edit-input {
+    padding: 10px 14px;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1.5px solid #818cf8;
+    border-radius: 12px;
+    color: white;
+    font-size: 15px;
+    outline: none;
+  }
+
+  .edit-input.small {
+    width: 100px;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .action-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: clamp(12px, 3vw, 16px);
+    border: none;
+    border-radius: 16px;
+    font-weight: 800;
+    font-size: clamp(14px, 3.2vw, 16px);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .action-btn.approve {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+  }
+
+  .action-btn.edit {
+    background: linear-gradient(135deg, #60a5fa, #818cf8);
+    color: white;
+  }
+
+  .action-btn.reject {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+  }
+
+  .action-btn.save {
+    background: #818cf8;
+    color: white;
+  }
+
+  .action-btn.cancel {
+    background: rgba(148, 163, 184, 0.3);
+    color: #94a3b8;
+  }
+
+  .action-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+  }
+
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30,41,59,0.95);
+    backdrop-filter: blur(20px);
+    color: white;
+    padding: 16px 32px;
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    font-weight: 700;
+    font-size: 16px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid rgba(129,140,248,0.3);
+    animation: slideDown 0.4s ease;
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 32px 0;
+    flex-wrap: wrap;
+  }
+
+  .page-btn {
+    padding: 12px 24px;
+    background: rgba(30, 41, 59, 0.6);
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    min-width: 120px;
+  }
+
+  .page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    color: #64748b;
+  }
+
+  .page-info {
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .page-info strong {
+    color: #c4b5fd;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateX(-50%) translateY(-40px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (min-width: 640px) {
+    .filters-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .card-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .bulk-actions {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .supervisor-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .entries-list {
+      gap: 24px;
+    }
+  }
+`;

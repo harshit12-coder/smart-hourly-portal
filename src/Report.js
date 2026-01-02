@@ -1,3 +1,4 @@
+// Report.js - MOBILE CARD VIEW + DESKTOP TABLE (Perfect for Mobile)
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import { utils, writeFile } from "xlsx";
@@ -27,39 +28,52 @@ export default function Report() {
 
   async function loadData() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("production_entries")
-      .select("*")
-      .eq("approver_status", "approved")
-      .order("date", { ascending: false })
-      .order("time_slot");
+    try {
+      let query = supabase
+        .from("production_entries")
+        .select("*")
+        .eq("approver_status", "approved")
+        .order("date", { ascending: false })
+        .order("time_slot", { ascending: true });
 
-    if (error) alert(error.message);
-    setEntries(data || []);
-    setFiltered(data || []);
-    setLoading(false);
+      if (filters.startDate) query = query.gte("date", filters.startDate);
+      if (filters.endDate) query = query.lte("date", filters.endDate);
+      if (filters.line) query = query.eq("line", filters.line);
+      if (filters.shift) query = query.eq("shift", filters.shift);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      setEntries(data || []);
+      setFiltered(data || []);
+    } catch (err) {
+      alert("Error loading data: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [filters.startDate, filters.endDate, filters.line, filters.shift]);
 
   useEffect(() => {
     let t = entries;
-
-    if (filters.startDate) t = t.filter(e => e.date >= filters.startDate);
-    if (filters.endDate) t = t.filter(e => e.date <= filters.endDate);
-    if (filters.line) t = t.filter(e => e.line === filters.line);
-    if (filters.shift) t = t.filter(e => e.shift === filters.shift);
-
-    if (search)
+    if (search) {
+      const lower = search.toLowerCase();
       t = t.filter(e =>
-        (e.mo_number || "").toLowerCase().includes(search.toLowerCase()) ||
-        (e.customer_name || "").toLowerCase().includes(search.toLowerCase()) ||
-        (e.line || "").toLowerCase().includes(search.toLowerCase())
+        (e.mo_number || "").toLowerCase().includes(lower) ||
+        (e.customer_name || "").toLowerCase().includes(lower) ||
+        (e.line || "").toLowerCase().includes(lower)
       );
-
+    }
     setFiltered(t);
     setCurrentPage(1);
-  }, [filters, search, entries]);
+  }, [search, entries]);
 
   const totalPages = Math.ceil(filtered.length / rowsPerPage);
   const currentFiltered = filtered.slice(
@@ -68,11 +82,11 @@ export default function Report() {
   );
 
   const exportToExcel = () => {
-    if (!filtered.length) return alert("No data");
+    if (!filtered.length) return alert("No data to export");
     const ws = utils.json_to_sheet(filtered);
     const wb = utils.book_new();
     utils.book_append_sheet(wb, ws, "Report");
-    writeFile(wb, `SmartHourly_${Date.now()}.xlsx`);
+    writeFile(wb, `SmartHourly_Report_${new Date().toISOString().split("T")[0]}.xlsx`);
   };
 
   const totalOK = filtered.reduce((s, e) => s + (e.ok_qty || 0), 0);
@@ -82,7 +96,7 @@ export default function Report() {
 
   const chartData = Object.values(
     filtered.reduce((a, e) => {
-      const k = e.time_slot;
+      const k = e.time_slot || "Unknown";
       if (!a[k]) a[k] = { time: k, total: 0 };
       a[k].total += (e.ok_qty || 0) + (e.nok_qty || 0);
       return a;
@@ -96,27 +110,35 @@ export default function Report() {
 
   const downtimeByLine = Object.values(
     filtered.reduce((a, e) => {
-      if (!a[e.line]) a[e.line] = { name: e.line, minutes: 0 };
-      a[e.line].minutes += e.downtime || 0;
+      const l = e.line || "Unknown";
+      if (!a[l]) a[l] = { name: l, minutes: 0 };
+      a[l].minutes += e.downtime || 0;
       return a;
     }, {})
   ).sort((a, b) => b.minutes - a.minutes).slice(0, 8);
 
   return (
-    <div className="wrap">
-      <h1 className="title">SmartHourly Dashboard</h1>
+    <div className="report-container">
+      <h1 className="page-title">SmartHourly Dashboard</h1>
 
-      <button className="export-btn" onClick={exportToExcel}>📥 Export Report</button>
+      <div className="top-actions">
+        <button className="export-btn" onClick={exportToExcel}>
+          📥 Export Report
+        </button>
+        <button className="refresh-btn" onClick={loadData}>
+          🔄 Refresh
+        </button>
+      </div>
 
       {/* METRICS */}
       <div className="metrics">
         <div className="metric">
           <p>Total Units</p>
-          <strong>{totalProduced}</strong>
+          <strong>{totalProduced.toLocaleString()}</strong>
         </div>
         <div className="metric">
           <p>OK Units</p>
-          <strong>{totalOK}</strong>
+          <strong>{totalOK.toLocaleString()}</strong>
         </div>
         <div className="metric">
           <p>OK %</p>
@@ -127,23 +149,23 @@ export default function Report() {
       {/* CHARTS */}
       <div className="charts">
         <div className="chart-card">
-          <h4>📈 Production Trend</h4>
-          <ResponsiveContainer width="100%" height={230}>
+          <h4>📈 Production by Slot</h4>
+          <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="time" />
-              <YAxis />
-              <Tooltip />
-              <Area dataKey="total" stroke="#818cf8" fill="#818cf866" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="time" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" />
+              <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #4f46e5" }} />
+              <Area type="monotone" dataKey="total" stroke="#818cf8" fill="#818cf899" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
         <div className="chart-card">
           <h4>🎯 Quality Ratio</h4>
-          <ResponsiveContainer width="100%" height={230}>
+          <ResponsiveContainer width="100%" height={240}>
             <PieChart>
-              <Pie data={qualityData} dataKey="value" innerRadius={50} outerRadius={75}>
+              <Pie data={qualityData} dataKey="value" innerRadius={60} outerRadius={90}>
                 {qualityData.map((d, i) => <Cell key={i} fill={d.color} />)}
               </Pie>
               <Tooltip />
@@ -152,244 +174,487 @@ export default function Report() {
         </div>
 
         <div className="chart-card">
-          <h4 style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            ⏱ Downtime by Line
-          </h4>
-
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={downtimeByLine} layout="vertical" barCategoryGap={12}>
-              <defs>
-                <linearGradient id="downtimeGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#fbbf24" />
-                  <stop offset="100%" stopColor="#f97316" />
-                </linearGradient>
-              </defs>
-
-              <CartesianGrid strokeDasharray="2 4" opacity={0.25} />
-
-              <XAxis type="number" hide />
-              <YAxis
-                dataKey="name"
-                type="category"
-                width={70}
-                tick={{ fill: "#cbd5ff", fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
-              />
-
-              <Tooltip
-                contentStyle={{
-                  background: "rgba(15, 23, 42, .95)",
-                  borderRadius: "10px",
-                  border: "1px solid #4f46e540",
-                  color: "white"
-                }}
-                formatter={(v) => [`${v} min`, "Downtime"]}
-              />
-
-              <Bar
-                dataKey="minutes"
-                name="Minutes"
-                fill="url(#downtimeGrad)"
-                radius={[4, 4, 4, 4]}
-                barSize={18}
-                label={{ position: "right", fill: "#e5e7ff", fontSize: 11 }}
-              />
+          <h4>⏱ Top Downtime Lines</h4>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={downtimeByLine} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis type="number" stroke="#94a3b8" />
+              <YAxis dataKey="name" type="category" width={80} stroke="#94a3b8" fontSize={12} />
+              <Tooltip />
+              <Bar dataKey="minutes" fill="#f97316" radius={[0, 8, 8, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* FILTERS — CLEAN UI */}
-      <div className="clean-filters">
-
-        <div className="filter-row">
-          <div>
-            <label>From</label>
-            <input type="date"
-              value={filters.startDate}
-              onChange={e => setFilters({ ...filters, startDate: e.target.value })}
-            />
+      {/* FILTERS */}
+      <div className="filters-card">
+        <div className="filter-grid">
+          <div className="input-group">
+            <label>From Date</label>
+            <input type="date" value={filters.startDate} onChange={e => setFilters({ ...filters, startDate: e.target.value })} />
           </div>
-
-          <div>
-            <label>To</label>
-            <input type="date"
-              value={filters.endDate}
-              onChange={e => setFilters({ ...filters, endDate: e.target.value })}
-            />
+          <div className="input-group">
+            <label>To Date</label>
+            <input type="date" value={filters.endDate} onChange={e => setFilters({ ...filters, endDate: e.target.value })} />
           </div>
-        </div>
-
-        <div className="filter-row">
-          <div>
+          <div className="input-group">
             <label>Line</label>
-            <select
-              value={filters.line}
-              onChange={e => setFilters({ ...filters, line: e.target.value })}
-            >
-              <option value="">All</option>
+            <select value={filters.line} onChange={e => setFilters({ ...filters, line: e.target.value })}>
+              <option value="">All Lines</option>
               {LINES.map(l => <option key={l}>{l}</option>)}
             </select>
           </div>
-
-          <div>
+          <div className="input-group">
             <label>Shift</label>
-            <select
-              value={filters.shift}
-              onChange={e => setFilters({ ...filters, shift: e.target.value })}
-            >
-              <option value="">All</option>
-              <option>A</option><option>B</option><option>C</option>
+            <select value={filters.shift} onChange={e => setFilters({ ...filters, shift: e.target.value })}>
+              <option value="">All Shifts</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
             </select>
           </div>
         </div>
 
         <input
-          className="search"
-          placeholder="🔍 Search MO / Line / Customer…"
+          className="search-input"
+          placeholder="🔍 Search by MO, Customer, Line..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
       </div>
 
-      {/* TABLE */}
-      <div className="table-box">
+      {/* MOBILE CARD VIEW */}
+      <div className="mobile-entries">
         {loading ? (
-          <div className="empty">Loading…</div>
+          <div className="loading">🔄 Loading...</div>
         ) : !filtered.length ? (
-          <div className="empty">No data</div>
+          <div className="empty-state">📭 No approved entries found</div>
         ) : (
-          <>
-            <div className="scroll">
-              <table>
-                <thead>
-                  <tr>
-                    {["Date","Line","Shift","Slot","MO","OK","NOK","Downtime"]
-                      .map(h => <th key={h}>{h}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentFiltered.map((e,i)=>(
-                    <tr key={i}>
-                      <td>{e.date}</td>
-                      <td>{e.line}</td>
-                      <td>{e.shift}</td>
-                      <td>{e.time_slot}</td>
-                      <td>{e.mo_number}</td>
-                      <td className="ok">{e.ok_qty}</td>
-                      <td className="nok">{e.nok_qty}</td>
-                      <td>{e.downtime||0}m</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {totalPages>1 && (
-              <div className="pager">
-                <button disabled={currentPage===1}
-                  onClick={()=>setCurrentPage(p=>p-1)}>Prev</button>
-                <span>{currentPage}/{totalPages}</span>
-                <button disabled={currentPage===totalPages}
-                  onClick={()=>setCurrentPage(p=>p+1)}>Next</button>
+          currentFiltered.map((e, i) => (
+            <div key={i} className="entry-card">
+              <div className="card-header">
+                <div className="main-info">
+                  <div className="date">{e.date}</div>
+                  <div className="slot">⏰ {e.time_slot}</div>
+                </div>
+                <div className="line-shift">
+                  <div className="line">{e.line}</div>
+                  <div className="shift">Shift {e.shift}</div>
+                </div>
               </div>
-            )}
-          </>
+
+              <div className="card-body">
+                <div className="info-row">
+                  <span className="label">Customer</span>
+                  <span className="value">{e.customer_name || "-"}</span>
+                </div>
+                <div className="info-row">
+                  <span className="label">MO Number</span>
+                  <span className="value">{e.mo_number || "-"} ({e.mo_type || "-"})</span>
+                </div>
+                <div className="qty-row">
+                  <div className="qty ok">
+                    <span className="label">OK</span>
+                    <strong>{e.ok_qty || 0}</strong>
+                  </div>
+                  <div className="qty nok">
+                    <span className="label">NOK</span>
+                    <strong>{e.nok_qty || 0}</strong>
+                  </div>
+                  <div className="qty">
+                    <span className="label">Downtime</span>
+                    <strong>{e.downtime || 0}m</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
         )}
       </div>
 
-      {/* STYLES */}
-      <style>{`
-        .wrap{max-width:1100px;margin:auto;padding:14px}
+      {/* DESKTOP TABLE VIEW */}
+      <div className="desktop-table">
+        {loading ? (
+          <div className="empty">🔄 Loading...</div>
+        ) : !filtered.length ? (
+          <div className="empty">📭 No approved entries</div>
+        ) : (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Line</th>
+                  <th>Shift</th>
+                  <th>Slot</th>
+                  <th>Customer</th>
+                  <th>MO Number</th>
+                  <th>OK</th>
+                  <th>NOK</th>
+                  <th>Downtime</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentFiltered.map((e, i) => (
+                  <tr key={i}>
+                    <td>{e.date}</td>
+                    <td>{e.line}</td>
+                    <td>{e.shift}</td>
+                    <td>{e.time_slot}</td>
+                    <td>{e.customer_name || "-"}</td>
+                    <td>{e.mo_number || "-"} ({e.mo_type || "-"})</td>
+                    <td className="ok">{e.ok_qty || 0}</td>
+                    <td className="nok">{e.nok_qty || 0}</td>
+                    <td>{e.downtime || 0}m</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-        .title{text-align:center;font-weight:900;
-          background:linear-gradient(90deg,#c7d2fe,#818cf8);
-          -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-          margin-bottom:10px}
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
+            Previous
+          </button>
+          <span>{currentPage} / {totalPages}</span>
+          <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+            Next
+          </button>
+        </div>
+      )}
 
-        .export-btn{background:#6366f1;color:white;padding:9px 16px;
-          border-radius:12px;border:none;font-weight:700;
-          display:block;margin:8px auto 14px}
-
-        .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-        .metric{background:#0f172abf;border:1px solid #4f46e550;
-          padding:12px;border-radius:16px;text-align:center}
-        .metric p{margin:0;color:#a9b1ff;font-size:12px}
-        .metric strong{font-size:22px}
-
-        .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));
-          gap:12px;margin:14px 0}
-
-        .chart-card{
-          background:linear-gradient(180deg,#0f172a,#020617);
-          padding:14px;border-radius:18px;
-          border:1px solid #4f46e533;
-          box-shadow:0 18px 40px rgba(0,0,0,.35)
+      <style jsx>{`
+        .report-container {
+          padding: clamp(16px, 4vw, 32px);
+          max-width: 1200px;
+          margin: 0 auto;
         }
 
-        .chart-card h4{margin:0 0 8px;color:#dbe3ff}
-
-        /* FILTER CARD */
-        .clean-filters{
-          background:rgba(10,15,30,.75);
-          border-radius:18px;
-          border:1px solid rgba(129,140,248,.25);
-          box-shadow:0 18px 40px rgba(0,0,0,.25);
-          padding:12px 14px;
-          margin:14px 0;
+        .page-title {
+          text-align: center;
+          font-weight: 900;
+          font-size: clamp(1.8rem, 5vw, 2.4rem);
+          background: linear-gradient(90deg, #c7d2fe, #818cf8, #60a5fa);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          margin-bottom: 20px;
         }
 
-        .filter-row{
-          display:grid;
-          grid-template-columns:1fr 1fr;
-          gap:10px;
-          margin-bottom:10px;
+        .top-actions {
+          text-align: center;
+          margin-bottom: 24px;
         }
 
-        .clean-filters label{
-          font-size:11px;
-          color:#9aa7ff;
-          margin-bottom:4px;
-          display:block;
+        .export-btn, .refresh-btn {
+          padding: 12px 24px;
+          border-radius: 16px;
+          font-weight: 700;
+          font-size: 15px;
+          cursor: pointer;
+          margin: 0 8px;
         }
 
-        .clean-filters input,
-        .clean-filters select{
-          width:100%;
-          background:#020617;
-          border:1px solid #334155;
-          border-radius:10px;
-          padding:9px 10px;
-          color:white;
+        .export-btn {
+          background: #6366f1;
+          color: white;
+          border: none;
         }
 
-        .clean-filters .search{
-          margin-top:4px;
-          padding:10px 12px;
+        .refresh-btn {
+          background: rgba(129, 140, 248, 0.2);
+          color: #818cf8;
+          border: 1px solid rgba(129, 140, 248, 0.4);
         }
 
-        .table-box{background:#0f172acc;border-radius:18px;padding:10px;margin-top:8px}
-        table{width:100%;font-size:13px}
+        .metrics {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 16px;
+          margin: 24px 0;
+        }
 
-        table thead{background:rgba(30,41,59,.6)}
-        th{color:#a5b4fc;text-align:left;padding:8px;border-bottom:1px solid rgba(129,140,248,.3)}
+        .metric {
+          background: rgba(15, 23, 42, 0.9);
+          border: 1px solid rgba(129, 140, 248, 0.3);
+          padding: 20px;
+          border-radius: 20px;
+          text-align: center;
+          backdrop-filter: blur(12px);
+        }
 
-        td{padding:8px}
-        .scroll{overflow-x:auto}
+        .metric p {
+          margin: 0 0 8px;
+          color: #94a3b8;
+          font-size: 14px;
+        }
 
-        .pager{display:flex;gap:10px;justify-content:center;padding:10px}
+        .metric strong {
+          font-size: 28px;
+          color: #e0e7ff;
+        }
 
-        .ok{color:#22c55e;font-weight:700}
-        .nok{color:#ef4444;font-weight:700}
+        .charts {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+          gap: 20px;
+          margin: 30px 0;
+        }
 
-        .empty{text-align:center;padding:30px;color:#9aa3c9}
+        .chart-card {
+          background: rgba(15, 23, 42, 0.9);
+          padding: 20px;
+          border-radius: 24px;
+          border: 1px solid rgba(129, 140, 248, 0.2);
+          box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        }
 
-        @media(max-width:900px){
-          .wrap{padding:10px}
-          .metrics{grid-template-columns:repeat(2,1fr)}
-          .charts{grid-template-columns:1fr}
-          table{font-size:12px}
+        .chart-card h4 {
+          margin: 0 0 16px;
+          color: #c4b5fd;
+        }
+
+        .filters-card {
+          background: rgba(15, 23, 42, 0.9);
+          border-radius: 24px;
+          padding: 24px;
+          border: 1px solid rgba(129, 140, 248, 0.25);
+          margin: 20px 0 30px;
+          box-shadow: 0 16px 40px rgba(0,0,0,0.3);
+        }
+
+        .filter-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+
+        .input-group label {
+          display: block;
+          color: #c4b5fd;
+          font-size: 14px;
+          margin-bottom: 8px;
+          font-weight: 600;
+        }
+
+        .input-group input, .input-group select {
+          width: 100%;
+          padding: 14px 16px;
+          background: rgba(10, 15, 25, 0.9);
+          border: 1.5px solid rgba(129, 140, 248, 0.3);
+          border-radius: 16px;
+          color: #e0e7ff;
+          font-size: 15px;
+        }
+
+        .search-input {
+          width: 100%;
+          padding: 16px 20px;
+          background: rgba(10, 15, 25, 0.9);
+          border: 1.5px solid rgba(129, 140, 248, 0.3);
+          border-radius: 20px;
+          color: #e0e7ff;
+          font-size: 16px;
+        }
+
+        /* MOBILE CARD VIEW */
+        .mobile-entries {
+          display: block;
+        }
+
+        .desktop-table {
+          display: none;
+        }
+
+        .entry-card {
+          background: rgba(30, 41, 59, 0.85);
+          backdrop-filter: blur(32px);
+          border-radius: 24px;
+          padding: 20px;
+          margin-bottom: 20px;
+          border: 1px solid rgba(129, 140, 248, 0.2);
+          box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+        }
+
+        .card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 20px;
+          padding-bottom: 16px;
+          border-bottom: 1px solid rgba(129, 140, 248, 0.15);
+        }
+
+        .main-info .date {
+          font-size: 18px;
+          font-weight: 800;
+          color: #c4b5fd;
+        }
+
+        .main-info .slot {
+          color: #94a3b8;
+          font-size: 15px;
+          margin-top: 4px;
+        }
+
+        .line-shift {
+          text-align: right;
+        }
+
+        .line-shift .line {
+          font-size: 18px;
+          font-weight: 700;
+          color: #e0e7ff;
+        }
+
+        .line-shift .shift {
+          color: #818cf8;
+          font-size: 15px;
+        }
+
+        .card-body .info-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 12px;
+        }
+
+        .info-row .label {
+          color: #94a3b8;
+          font-size: 14px;
+        }
+
+        .info-row .value {
+          color: #e0e7ff;
+          font-weight: 600;
+          text-align: right;
+        }
+
+        .qty-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 12px;
+          margin-top: 16px;
+        }
+
+        .qty {
+          text-align: center;
+          background: rgba(15, 23, 42, 0.6);
+          padding: 12px;
+          border-radius: 16px;
+        }
+
+        .qty .label {
+          display: block;
+          color: #94a3b8;
+          font-size: 13px;
+          margin-bottom: 4px;
+        }
+
+        .qty strong {
+          font-size: 22px;
+          font-weight: 900;
+        }
+
+        .qty.ok strong {
+          color: #22c55e;
+        }
+
+        .qty.nok strong {
+          color: #ef4444;
+        }
+
+        /* DESKTOP TABLE */
+        @media (min-width: 768px) {
+          .mobile-entries {
+            display: none;
+          }
+
+          .desktop-table {
+            display: block;
+          }
+
+          .table-wrapper {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid rgba(129, 140, 248, 0.2);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          thead {
+            background: rgba(51, 65, 85, 0.8);
+          }
+
+          th {
+            padding: 16px 12px;
+            text-align: left;
+            color: #c4b5fd;
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+          }
+
+          td {
+            padding: 14px 12px;
+            border-bottom: 1px solid rgba(129, 140, 248, 0.1);
+            color: #e0e7ff;
+          }
+
+          .ok {
+            color: #22c55e;
+            font-weight: 700;
+            text-align: center;
+          }
+
+          .nok {
+            color: #ef4444;
+            font-weight: 700;
+            text-align: center;
+          }
+        }
+
+        .loading, .empty-state {
+          text-align: center;
+          padding: 60px 20px;
+          color: #94a3b8;
+          font-size: 18px;
+        }
+
+        .pagination {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 20px;
+          padding: 32px 0;
+        }
+
+        .pagination button {
+          padding: 12px 24px;
+          background: rgba(30, 41, 59, 0.6);
+          color: #e0e7ff;
+          border: 1px solid rgba(129, 140, 248, 0.3);
+          border-radius: 16px;
+          cursor: pointer;
+          font-weight: 600;
+        }
+
+        .pagination button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .pagination span {
+          color: #94a3b8;
+          font-weight: 600;
         }
       `}</style>
     </div>
