@@ -25,7 +25,7 @@ export default function Supervisor() {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [filters, setFilters] = useState({
-    date: new Date().toISOString().substring(0, 10),
+    date: new Date().toLocaleDateString("en-CA"),
     line: "",
     shift: ""
   });
