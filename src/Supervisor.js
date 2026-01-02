@@ -430,13 +430,11 @@ export default function Supervisor() {
                           placeholder="Enter MO"
                         />
                       </div>
-                    ) : r.mo_type === "Fresh" && Array.isArray(r.moNumbers) && r.moNumbers.length > 0 ? (
+                    ) : r.mo_type === "Fresh" && r.moNumbers && r.moNumbers.length > 0 ? (
                       <select
                         value={r.mo_number || ""}
                         onChange={e => {
-                          // Supervisor mein rows update karne ka direct function nahi hai card view mein
-                          // Isliye temp state use kar ke row update karenge
-                          const updatedRows = rows.map(row => 
+                          const updatedRows = rows.map(row =>
                             row.id === r.id ? { ...row, mo_number: e.target.value } : row
                           );
                           setRows(updatedRows);
@@ -445,11 +443,12 @@ export default function Supervisor() {
                       >
                         <option value="">Select MO</option>
                         {r.moNumbers.map((mo, k) => {
-                          const value = mo.mo_Number || mo.moNumber || mo.number || mo.id || "";
-                          const display = mo.mo_Number || mo.moNumber || mo.number || `MO ${k + 1}`;
+                          // Sahi MO number nikaal rahe hain – jo bhi field ho
+                          const displayText = mo.mo_Number || mo.moNumber || mo.number || mo.mo_no || `MO ${k + 1}`;
+                          const valueText = mo.mo_Number || mo.moNumber || mo.number || mo.mo_no || "";
                           return (
-                            <option key={k} value={value}>
-                              {display}
+                            <option key={k} value={valueText}>
+                              {displayText}
                             </option>
                           );
                         })}
