@@ -411,7 +411,7 @@ export default function Supervisor() {
                     )}
                   </div>
 
-                  <div className="field">
+                                    <div className="field">
                     <label>MO Details</label>
                     {editingId === r.id ? (
                       <div className="mo-edit">
@@ -427,11 +427,29 @@ export default function Supervisor() {
                           value={tempData.mo_number || ""}
                           onChange={e => updateTemp("mo_number", e.target.value)}
                           className="edit-input"
+                          placeholder="Enter MO"
                         />
                       </div>
+                    ) : r.mo_type === "Fresh" && r.moNumbers?.length > 0 ? (
+                      <select
+                        value={r.mo_number || ""}
+                        onChange={e => updateRow(i, "mo_number", e.target.value)}
+                        className="app-input"
+                      >
+                        <option value="">Select MO</option>
+                        {r.moNumbers.map((mo, k) => {
+                          const value = mo.mo_Number || mo.moNumber || mo.number || mo.id || "";
+                          const display = mo.mo_Number || mo.moNumber || mo.number || `MO ${k+1}`;
+                          return (
+                            <option key={k} value={value}>
+                              {display}
+                            </option>
+                          );
+                        })}
+                      </select>
                     ) : (
                       <span className="value">
-                        {r.mo_number || "-"} <small>({r.mo_type})</small>
+                        {r.mo_number || "-"} <small>({r.mo_type || "-"})</small>
                       </span>
                     )}
                   </div>
