@@ -125,9 +125,7 @@ export default function Report() {
         <button className="export-btn" onClick={exportToExcel}>
           📥 Export Report
         </button>
-        <button className="refresh-btn" onClick={loadData}>
-          🔄 Refresh
-        </button>
+        
       </div>
 
       {/* METRICS */}
@@ -149,7 +147,16 @@ export default function Report() {
       {/* CHARTS */}
       <div className="charts">
         <div className="chart-card">
-          <h4>📈 Production by Slot</h4>
+          <h4
+  style={{
+    color: "#7dcf96",
+    margin: "0 0 12px",
+    textAlign: "center"
+  }}
+>
+  📈 Production by Slot
+</h4>
+
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -162,7 +169,15 @@ export default function Report() {
         </div>
 
         <div className="chart-card">
-          <h4>🎯 Quality Ratio</h4>
+         <h4
+  style={{
+    color: "#f4c542",
+    margin: "0 0 12px",
+    textAlign: "center"
+  }}
+>
+  🎯 Quality Ratio
+</h4>
           <ResponsiveContainer width="100%" height={240}>
             <PieChart>
               <Pie data={qualityData} dataKey="value" innerRadius={60} outerRadius={90}>
@@ -174,7 +189,16 @@ export default function Report() {
         </div>
 
         <div className="chart-card">
-          <h4>⏱ Top Downtime Lines</h4>
+         <h4
+  style={{
+    color: "#ea7575ff",
+    margin: "0 0 12px",
+    textAlign: "center",
+    fontWeight: "800",
+  }}
+>
+  ⏱ Top Downtime Lines
+</h4>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={downtimeByLine} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -329,9 +353,10 @@ export default function Report() {
 
       <style jsx>{`
         .report-container {
-          padding: clamp(16px, 4vw, 32px);
-          max-width: 1200px;
-          margin: 0 auto;
+          padding: clamp(5px, 1vw, 10px);
+          max-width: 1600px;
+          margin: 0;;
+          width: 100%;
         }
 
         .page-title {
@@ -349,31 +374,29 @@ export default function Report() {
           margin-bottom: 24px;
         }
 
-        .export-btn, .refresh-btn {
-          padding: 12px 24px;
-          border-radius: 16px;
-          font-weight: 700;
-          font-size: 15px;
-          cursor: pointer;
-          margin: 0 8px;
-        }
+       .export-btn {
+  background: #27ae60;   /* premium green */
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  margin: 0 8px;
+  box-shadow: 0 6px 14px rgba(39, 174, 96, 0.25);
+  transition: 0.25s ease;
+}
 
-        .export-btn {
-          background: #6366f1;
-          color: white;
-          border: none;
-        }
-
-        .refresh-btn {
-          background: rgba(129, 140, 248, 0.2);
-          color: #818cf8;
-          border: 1px solid rgba(129, 140, 248, 0.4);
-        }
+.export-btn:hover {
+  background: #34a063ff;   /* slightly darker on hover */
+  transform: translateY(-1px);
+}
 
         .metrics {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-          gap: 16px;
+          gap: 10px;
           margin: 24px 0;
         }
 
@@ -397,25 +420,29 @@ export default function Report() {
           color: #e0e7ff;
         }
 
-        .charts {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-          gap: 20px;
-          margin: 30px 0;
-        }
+      .charts {
+    display: grid;
+    grid-template-columns: 1fr; /* Mobile pe single column full width */
+    gap: 20px;
+    margin: 20px 0;
+  }
 
-        .chart-card {
-          background: rgba(15, 23, 42, 0.9);
-          padding: 20px;
-          border-radius: 24px;
-          border: 1px solid rgba(129, 140, 248, 0.2);
-          box-shadow: 0 20px 50px rgba(0,0,0,0.4);
-        }
+       .chart-card {
+    background: rgba(15, 23, 42, 0.9);
+    padding: 20px;
+    border-radius: 24px;
+    border: 1px solid rgba(129, 140, 248, 0.2);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    width: 100%;           /* Critical */
+    max-width: none;       /* Remove any restriction */
+    margin: 0;             /* No extra margin */
+  }
 
         .chart-card h4 {
-          margin: 0 0 16px;
-          color: #c4b5fd;
-        }
+    margin: 0 0 12px;
+    color: #7dcf96ff;
+    text-align: center;
+  }
 
         .filters-card {
           background: rgba(15, 23, 42, 0.9);
@@ -464,6 +491,7 @@ export default function Report() {
         /* MOBILE CARD VIEW */
         .mobile-entries {
           display: block;
+          
         }
 
         .desktop-table {
@@ -569,6 +597,10 @@ export default function Report() {
 
         /* DESKTOP TABLE */
         @media (min-width: 768px) {
+        .charts {
+      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+      gap: 24px;
+    }
           .mobile-entries {
             display: none;
           }

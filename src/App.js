@@ -1,4 +1,4 @@
-// App.js — PREMIUM MOBILE-APP LIKE UI (LOGIC UNCHANGED)
+// App.js — PREMIUM MOBILE-APP LIKE UI (LOGIC UNCHANGED + MOBILE SCROLL FIXED)
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase";
@@ -45,7 +45,7 @@ function getCurrentShiftAndTime() {
   const tot = h * 60 + m; const dateStr = now.toLocaleDateString("en-CA");
   let shift = "";
   if (tot >= 420 && tot < 930) shift = "A";
-  else if (tot >= 930 || tot < 420) shift = "B"; // B covers 15:30 to 07:00 next day
+  else if (tot >= 930 || tot < 420) shift = "B";
   else shift = "C";
   return { date: dateStr, shift, now };
 }
@@ -213,7 +213,7 @@ export default function App() {
     <div className="app-container">
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
-      <h1 className="app-title">SmartHourly Production</h1>
+      <h1 className="app-title">Smart Sheet</h1>
 
       {/* HEADER CARD */}
       <div className="header-card">
@@ -305,7 +305,7 @@ export default function App() {
                   </select>
                 </div>
 
-                               <div className="input-group">
+                <div className="input-group">
                   <label>MO Number *</label>
                   {r.mo_type === "Fresh" ? (
                     r.moNumbers?.length ? (
@@ -316,7 +316,6 @@ export default function App() {
                       >
                         <option value="">Select MO</option>
                         {r.moNumbers.map((mo, k) => {
-                          // Handle if mo is string or object
                           const v = typeof mo === 'string' ? mo : (mo.mo_Number || mo.moNumber || mo.number || mo.mo_no || mo.id || k);
                           const display = typeof mo === 'string' ? mo : (mo.mo_Number || mo.moNumber || mo.number || mo.mo_no || mo.id || `MO ${k + 1}`);
                           return <option key={k} value={v}>{display}</option>;
@@ -459,7 +458,7 @@ export default function App() {
   );
 }
 
-/* PREMIUM MOBILE-APP STYLE CSS */
+/* UPDATED PREMIUM MOBILE-APP STYLE CSS - NO HORIZONTAL SCROLL */
 const globalStyles = `
   :root {
     --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
@@ -474,18 +473,26 @@ const globalStyles = `
     --warning: #f59e0b;
   }
 
-  * { box-sizing: border-box; margin:0; padding:0; }
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    width: 100%;
+    overflow-x: hidden;
+  }
 
   .app-container {
     min-height: 100vh;
-    width: 100vw;
-    background: 
-      radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.25), transparent 50%),
-      radial-gradient(circle at 80% 20%, rgba(120, 219, 255, 0.25), transparent 50%),
-      var(--bg-gradient);
-    padding: clamp(12px, 3vw, 20px) clamp(10px, 2vw, 16px);
+    width: 100%;
+    max-width: 100vw;
+   
+    padding: clamp(12px, 3vw, 20px) clamp(8px, 2vw, 12px);
     color: var(--text-primary);
     font-family: system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
   }
 
   .app-title {
@@ -500,7 +507,7 @@ const globalStyles = `
     letter-spacing: -0.5px;
   }
 
-  .header-card {
+  .header-card, .slot-card {
     background: var(--glass-bg);
     backdrop-filter: blur(32px);
     -webkit-backdrop-filter: blur(32px);
@@ -508,12 +515,28 @@ const globalStyles = `
     padding: clamp(16px, 4vw, 24px);
     border: 1px solid var(--glass-border);
     box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    width: 100%;
+    overflow: hidden;
     margin-bottom: 24px;
   }
 
-  .header-grid, .form-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
-  .form-grid-2 { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
-  .form-grid-4 { display: grid; gap: 16px; grid-template-columns: repeat(2, 1fr); }
+  .header-grid, .form-grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid-2 {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .form-grid-4 {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(2, 1fr);
+  }
 
   .input-group label {
     display: block;
@@ -523,8 +546,9 @@ const globalStyles = `
     margin-bottom: 8px;
   }
 
-  .app-input {
+  .app-input, select, input {
     width: 100%;
+    min-width: 0;
     padding: clamp(12px, 3vw, 16px) 16px;
     background: var(--input-bg);
     border: 1.5px solid var(--input-border);
@@ -536,21 +560,11 @@ const globalStyles = `
     outline: none;
   }
 
-  .app-input:focus {
+  .app-input:focus, select:focus, input:focus {
     border-color: #818cf8;
     background: rgba(15, 23, 42, 0.95);
     box-shadow: 0 0 24px rgba(129, 140, 248, 0.3);
     transform: translateY(-2px);
-  }
-
-  .slot-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(32px);
-    border-radius: 24px;
-    padding: clamp(18px, 4vw, 24px);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
-    animation: fadeUp 0.5s ease both;
   }
 
   .slot-time {
@@ -571,30 +585,29 @@ const globalStyles = `
     margin-top: 24px;
   }
 
-  .submit-btn {
+  .submit-btn, .skip-btn {
     padding: clamp(14px, 3.5vw, 18px);
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
     border: none;
     border-radius: 16px;
     font-size: clamp(15px, 3.5vw, 17px);
     font-weight: 800;
-    box-shadow: 0 16px 40px rgba(16,185,129,0.4);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.4);
     transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .submit-btn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 16px 40px rgba(16,185,129,0.4);
   }
 
   .submit-btn:hover { transform: translateY(-3px); box-shadow: 0 24px 60px rgba(16,185,129,0.5); }
 
   .skip-btn {
-    padding: clamp(14px, 3.5vw, 18px);
     background: linear-gradient(135deg, #f59e0b, #d97706);
     color: white;
-    border: none;
-    border-radius: 16px;
-    font-size: clamp(15px, 3.5vw, 17px);
-    font-weight: 800;
     box-shadow: 0 16px 40px rgba(245,158,11,0.4);
-    transition: all 0.3s ease;
   }
 
   .skip-btn:hover { transform: translateY(-3px); box-shadow: 0 24px 60px rgba(245,158,11,0.5); }
@@ -671,18 +684,35 @@ const globalStyles = `
   @keyframes spin { to { transform: rotate(360deg); } }
 
   @media (min-width: 640px) {
-    .header-grid, .form-grid { grid-template-columns: repeat(3, 1fr); }
+  .app-container {
+   background: 
+      radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.25), transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(120, 219, 255, 0.25), transparent 50%),
+      var(--bg-gradient);
+      width: 100%;
+    .header-grid, .form-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
     .form-grid-2 { grid-template-columns: 1fr 1fr; }
     .form-grid-4 { grid-template-columns: repeat(4, 1fr); }
   }
 
   @media (min-width: 768px) {
-    .app-container { max-width: 1000px; margin: 0 auto; }
+    .app-container {
+      // max-width: 1000px;
+      width: 100%;
+      margin: 0 auto;
+      padding-left: clamp(16px, 4vw, 32px);
+      padding-right: clamp(16px, 4vw, 32px);
+    }
     .action-buttons { flex-direction: row; }
     .submit-btn, .skip-btn { flex: 1; }
   }
 
   @media (max-width: 480px) {
+  .app-container {
+  width: 100%;
     .form-grid-4 { grid-template-columns: 1fr 1fr; }
   }
 `;

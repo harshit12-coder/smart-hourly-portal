@@ -1,7 +1,6 @@
-// Supervisor.js - COMPLETE UPDATED & FINAL VERSION (Bulk Buttons Fixed + Screenshot Match)
+// Supervisor.js - FINAL VERSION: Export Removed + Responsive CSS Fixed (Logic Safe)
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "./supabase";
-import { utils, writeFile } from "xlsx";
 
 const LINES = Array.from({ length: 18 }).map(
   (_, i) => `Line-${String(i + 1).padStart(2, "0")}`
@@ -83,31 +82,6 @@ export default function Supervisor() {
     setRows(data || []);
     setSelected([]);
   }, [filters]);
-
-  const exportToExcel = () => {
-    if (rows.length === 0) return alert("No pending entries to export");
-
-    const dataToExport = rows.map(e => ({
-      "Date": e.date,
-      "Shift": e.shift,
-      "Line": e.line,
-      "Time Slot": e.time_slot,
-      "Customer": e.customer_name,
-      "MO Type": e.mo_type,
-      "MO Number": e.mo_number,
-      "OK Qty": e.ok_qty || 0,
-      "NOK Qty": e.nok_qty || 0,
-      "Downtime (min)": e.downtime || 0,
-      "Downtime Detail": e.downtime_detail,
-      "ATL": e.atl,
-      "Remarks": e.remarks
-    }));
-
-    const worksheet = utils.json_to_sheet(dataToExport);
-    const workbook = utils.book_new();
-    utils.book_append_sheet(workbook, worksheet, "Pending Entries");
-    writeFile(workbook, `SmartHourly_Pending_${filters.date}.xlsx`);
-  };
 
   useEffect(() => {
     load();
@@ -290,17 +264,13 @@ export default function Supervisor() {
     <div className="supervisor-container">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <h1 className="page-title">SmartHourly Review Panel</h1>
+      <h1 className="page-title">Review Panel</h1>
 
       {name && (
         <div className="user-info">
           👤 Logged in as: <strong>{name}</strong>
         </div>
       )}
-
-      <button onClick={exportToExcel} className="export-btn">
-        📥 Export Pending to Excel
-      </button>
 
       {/* FILTERS CARD */}
       <div className="filters-card">
@@ -341,7 +311,7 @@ export default function Supervisor() {
         </div>
       </div>
 
-      {/* BULK ACTIONS - PERFECTLY MATCHES YOUR SCREENSHOT */}
+      {/* BULK ACTIONS */}
       {rows.length > 0 && (
         <div className="bulk-actions">
           <div className="selection-info">
@@ -357,14 +327,14 @@ export default function Supervisor() {
               disabled={selected.length === 0 || loading}
               className="bulk-approve"
             >
-               Approve ({selected.length || 0})
+              Approve ({selected.length || 0})
             </button>
             <button
               onClick={bulkReject}
               disabled={selected.length === 0 || loading}
               className="bulk-reject"
             >
-               Reject ({selected.length || 0})
+              Reject ({selected.length || 0})
             </button>
           </div>
         </div>
@@ -562,25 +532,36 @@ const globalStyles = `
     --warning: #f59e0b;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    width: 100%;
+    overflow-x: hidden;
+  }
 
   .supervisor-container {
     min-height: 100vh;
-    width: 100vw;
-    background: 
-      radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.25), transparent 50%),
-      radial-gradient(circle at 80% 20%, rgba(120, 219, 255, 0.25), transparent 50%),
-      var(--bg-gradient);
-    padding: clamp(16px, 4vw, 32px);
+    width: 100%;
+    max-width: 100vw;
+    // background: 
+    //   radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.25), transparent 50%),
+    //   radial-gradient(circle at 80% 20%, rgba(120, 219, 255, 0.25), transparent 50%),
+    //   var(--bg-gradient);
+    padding: 12px 4px 32px 4px; /* Mobile: tight sides, good top/bottom */
     color: var(--text-primary);
     font-family: system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
   }
 
   .page-title {
     text-align: center;
-    font-size: clamp(1.8rem, 5vw, 2.2rem);
+    font-size: clamp(1.8rem, 5vw, 2.4rem);
     font-weight: 900;
-    margin: 0 0 20px;
+    margin-bottom: 20px;
     background: linear-gradient(90deg, #c7d2fe, #818cf8, #60a5fa);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -600,55 +581,52 @@ const globalStyles = `
     font-weight: 800;
   }
 
-  .export-btn {
-    display: block;
-    width: fit-content;
-    margin: 0 auto 28px;
-    padding: clamp(12px, 3vw, 16px) clamp(20px, 5vw, 32px);
-    background: rgba(129, 140, 248, 0.15);
-    color: #c4b5fd;
-    border: 1.5px solid rgba(129, 140, 248, 0.3);
-    border-radius: 20px;
-    font-weight: 700;
-    font-size: clamp(15px, 3.5vw, 17px);
-    cursor: pointer;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 12px 32px rgba(0,0,0,0.3);
-    transition: all 0.3s ease;
-  }
-
-  .export-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 20px 50px rgba(129, 140, 248, 0.2);
-  }
-
-  .filters-card {
+  .filters-card, .bulk-actions, .entry-card, .empty-state {
     background: var(--glass-bg);
     backdrop-filter: blur(32px);
     border-radius: 24px;
-    padding: clamp(20px, 4vw, 28px);
     border: 1px solid var(--glass-border);
     box-shadow: 0 20px 50px rgba(0,0,0,0.4);
-    margin-bottom: 28px;
+    overflow: hidden;
+    width: 100%;
+    max-width: none;
+    margin: 0 auto 20px auto;
+  }
+
+  .filters-card {
+    padding: clamp(16px, 4vw, 28px);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: rgba(16, 185, 129, 0.15);
+    border: 2px dashed rgba(16, 185, 129, 0.5);
+  }
+
+  .celebration {
+    font-size: 5rem;
+    margin-bottom: 16px;
   }
 
   .filters-grid {
     display: grid;
-    gap: 20px;
+    gap: 16px;
     grid-template-columns: 1fr;
   }
 
   .input-group label {
     display: block;
     color: #c4b5fd;
-    font-size: clamp(14px, 3vw, 15px);
+    font-size: clamp(13px, 3vw, 15px);
     font-weight: 700;
     margin-bottom: 10px;
   }
 
   .app-input {
     width: 100%;
-    padding: clamp(14px, 3.5vw, 18px) 18px;
+    min-width: 0;
+    padding: clamp(14px, 3.5vw, 18px) 16px;
     background: var(--input-bg);
     border: 1.5px solid var(--input-border);
     border-radius: 16px;
@@ -662,26 +640,19 @@ const globalStyles = `
   .app-input:focus {
     border-color: #818cf8;
     box-shadow: 0 0 28px rgba(129, 140, 248, 0.3);
-    transform: translateY(-2px);
   }
 
   .bulk-actions {
-    background: var(--glass-bg);
-    backdrop-filter: blur(32px);
-    border-radius: 24px;
-    padding: clamp(16px, 3vw, 20px);
-    margin-bottom: 20px;
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+    padding: clamp(14px, 3vw, 20px);
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
   }
 
   .selection-info {
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
     flex-wrap: wrap;
     gap: 12px;
   }
@@ -695,7 +666,6 @@ const globalStyles = `
     font-weight: 700;
     font-size: 14px;
     cursor: pointer;
-    white-space: nowrap;
   }
 
   .selected-count {
@@ -706,44 +676,29 @@ const globalStyles = `
 
   .bulk-buttons {
     display: flex;
-    gap: 16px;
-    width: 100%;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .bulk-approve, .bulk-reject {
-    flex: 1;
-    padding: 5px 5px;
+    padding: clamp(16px, 4vw, 20px);
     border: none;
-    border-radius: 10px;
+    border-radius: 16px;
     color: white;
     font-weight: 800;
-    font-size: 14px;
+    font-size: clamp(15px, 4vw, 17px);
     cursor: pointer;
     box-shadow: 0 12px 32px rgba(0,0,0,0.4);
     transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    min-height: 60px;
+    min-height: 56px;
   }
 
   .bulk-approve {
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, var(--success), #059669);
   }
 
   .bulk-reject {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-  }
-
-  .bulk-approve:disabled, .bulk-reject:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .bulk-approve:hover:not(:disabled), .bulk-reject:hover:not(:disabled) {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    background: linear-gradient(135deg, var(--danger), #dc2626);
   }
 
   .loading-state {
@@ -762,33 +717,6 @@ const globalStyles = `
     margin: 0 auto 20px;
   }
 
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    background: rgba(16, 185, 129, 0.15);
-    border: 2px dashed rgba(16, 185, 129, 0.5);
-    border-radius: 32px;
-    margin: 20px auto;
-    max-width: 500px;
-  }
-
-  .celebration {
-    font-size: 5rem;
-    margin-bottom: 16px;
-  }
-
-  .empty-state h3 {
-    font-size: clamp(1.4rem, 4vw, 1.8rem);
-    color: #10b981;
-    font-weight: 900;
-    margin-bottom: 12px;
-  }
-
-  .empty-state p {
-    color: var(--text-secondary);
-    font-size: 16px;
-  }
-
   .entries-list {
     display: flex;
     flex-direction: column;
@@ -796,22 +724,7 @@ const globalStyles = `
   }
 
   .entry-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(32px);
-    border-radius: 24px;
-    padding: clamp(18px, 4vw, 24px);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
-    transition: all 0.3s ease;
-  }
-
-  .entry-card.selected {
-    border-color: #818cf8;
-    box-shadow: 0 0 40px rgba(129, 140, 248, 0.3);
-  }
-
-  .entry-card:hover {
-    transform: translateY(-4px);
+    padding: clamp(16px, 4vw, 24px);
   }
 
   .card-header {
@@ -835,15 +748,9 @@ const globalStyles = `
 
   .card-grid {
     display: grid;
-    gap: 18px;
+    gap: 16px;
     grid-template-columns: 1fr 1fr;
     margin-bottom: 24px;
-  }
-
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
   }
 
   .field.full {
@@ -857,13 +764,13 @@ const globalStyles = `
   }
 
   .field.ok .value.big {
-    color: #10b981;
+    color: var(--success);
     font-weight: 900;
     font-size: 1.6rem;
   }
 
   .field.nok .value.big {
-    color: #ef4444;
+    color: var(--danger);
     font-weight: 900;
     font-size: 1.6rem;
   }
@@ -880,44 +787,59 @@ const globalStyles = `
     font-size: 16px;
   }
 
-  .field .value.italic {
-    font-style: italic;
-    opacity: 0.8;
-    font-size: 15px;
-  }
-
-  .field .value.high {
-    color: #ef4444;
-    font-weight: 800;
-  }
-
-  .field .value.medium {
-    color: #f59e0b;
-    font-weight: 700;
-  }
-
   .mo-edit {
     display: flex;
     gap: 8px;
   }
 
+   .mo-edit {
+    display: flex;
+    gap: 8px;
+  }
+
   .edit-input {
-    padding: 10px 14px;
-    background: rgba(15, 23, 42, 0.95);
-    border: 1.5px solid #818cf8;
+    width: 100%;
+    padding: 12px 14px;
+    background: rgba(15, 23, 42, 1);
+    border: 2px solid #818cf8;
     border-radius: 12px;
-    color: white;
+    color: #e0e7ff;
     font-size: 15px;
+    font-weight: 500;
     outline: none;
+    transition: all 0.3s ease;
   }
 
   .edit-input.small {
-    width: 100px;
+    width: auto;
+    min-width: 100px;
+  }
+
+  .edit-input:focus {
+    border-color: #a78bfa;
+    background: rgba(30, 41, 59, 1);
+    box-shadow: 0 0 20px rgba(129, 140, 248, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .edit-input::placeholder {
+    color: #94a3b8;
+    opacity: 0.8;
+  }
+
+  /* Dropdown arrow for select */
+  select.edit-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23e0e7ff' viewBox='0 0 20 20'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 12px;
+    padding-right: 40px;
   }
 
   .card-actions {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
   }
 
@@ -930,38 +852,13 @@ const globalStyles = `
     font-weight: 800;
     font-size: clamp(14px, 3.2vw, 16px);
     cursor: pointer;
-    transition: all 0.3s ease;
   }
 
-  .action-btn.approve {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-  }
-
-  .action-btn.edit {
-    background: linear-gradient(135deg, #60a5fa, #818cf8);
-    color: white;
-  }
-
-  .action-btn.reject {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: white;
-  }
-
-  .action-btn.save {
-    background: #818cf8;
-    color: white;
-  }
-
-  .action-btn.cancel {
-    background: rgba(148, 163, 184, 0.3);
-    color: #94a3b8;
-  }
-
-  .action-btn:hover:not(:disabled) {
-    transform: translateY(-3px);
-    box-shadow: 0 16px 40px rgba(0,0,0,0.4);
-  }
+  .action-btn.approve { background: linear-gradient(135deg, var(--success), #059669); color: white; }
+  .action-btn.edit { background: linear-gradient(135deg, #60a5fa, #818cf8); color: white; }
+  .action-btn.reject { background: linear-gradient(135deg, var(--danger), #dc2626); color: white; }
+  .action-btn.save { background: #818cf8; color: white; }
+  .action-btn.cancel { background: rgba(148, 163, 184, 0.3); color: #94a3b8; }
 
   .toast {
     position: fixed;
@@ -1002,23 +899,6 @@ const globalStyles = `
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    min-width: 120px;
-  }
-
-  .page-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    color: #64748b;
-  }
-
-  .page-info {
-    color: var(--text-secondary);
-    font-weight: 600;
-    font-size: 16px;
-  }
-
-  .page-info strong {
-    color: #c4b5fd;
   }
 
   @keyframes slideDown {
@@ -1034,15 +914,29 @@ const globalStyles = `
     .filters-grid {
       grid-template-columns: repeat(3, 1fr);
     }
-    
-    .card-grid {
-      grid-template-columns: repeat(4, 1fr);
-    }
-    
+
     .bulk-actions {
       flex-direction: row;
       justify-content: space-between;
       align-items: center;
+    }
+
+    .bulk-buttons {
+      flex-direction: row;
+      gap: 16px;
+      width: auto;
+    }
+
+    .card-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .supervisor-container {
+      padding: clamp(16px, 4vw, 40px) clamp(16px, 5vw, 80px);
+      max-width: 1200px;
+      margin: 0 auto;
     }
   }
 
@@ -1050,10 +944,6 @@ const globalStyles = `
     .supervisor-container {
       max-width: 1200px;
       margin: 0 auto;
-    }
-    
-    .entries-list {
-      gap: 24px;
     }
   }
 `;
