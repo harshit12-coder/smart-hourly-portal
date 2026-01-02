@@ -305,7 +305,7 @@ export default function App() {
                   </select>
                 </div>
 
-                <div className="input-group">
+                               <div className="input-group">
                   <label>MO Number *</label>
                   {r.mo_type === "Fresh" ? (
                     r.moNumbers?.length ? (
@@ -316,8 +316,10 @@ export default function App() {
                       >
                         <option value="">Select MO</option>
                         {r.moNumbers.map((mo, k) => {
-                          const v = mo.mo_Number || mo.moNumber || mo.number || k;
-                          return <option key={k} value={v}>{v}</option>;
+                          // Handle if mo is string or object
+                          const v = typeof mo === 'string' ? mo : (mo.mo_Number || mo.moNumber || mo.number || mo.mo_no || mo.id || k);
+                          const display = typeof mo === 'string' ? mo : (mo.mo_Number || mo.moNumber || mo.number || mo.mo_no || mo.id || `MO ${k + 1}`);
+                          return <option key={k} value={v}>{display}</option>;
                         })}
                       </select>
                     ) : (
